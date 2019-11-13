@@ -52,9 +52,9 @@ $ roslaunch ar_arena apriltag.launch simulation:=true
 ```
 $ rviz
 ```
-and ADD the topic /tag_detections (You can visualize the published information also by command line: rostopic echo /tag_detections – or launching rqt_image_view and selecting the above-mentioned topic)
+and ADD the topic */tag_detections_image* (You can visualize the published information also by command line: rostopic echo */tag_detections* – or launching rqt_image_view and selecting the */tag_detections_image* topic)
 
-
+---
 
 ## Task 2
 
