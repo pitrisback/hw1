@@ -2,6 +2,26 @@
 ## Task 1
 
 Suppose to have N=16 objects identified by N different [APRILTAG](https://april.eecs.umich.edu/software/apriltag) markers (id = 0, ..., 15):
+
+| id | frame_id         |
+| ---|:----------------:| 
+| 0  | red_cube_0       |
+| 1  | red_cube_1       | 
+| 2  | red_cube_2       |  
+| 3  | red_cube_3       |  
+| 4  | yellow_cyl_0     |  
+| 5  | yellow_cyl_1     |  
+| 6  | green_prism_0    |  
+| 7  | green_ prism_1   |  
+| 8  | green_ prism_2   |  
+| 9  | blue_cube_0      |  
+| 10 | blue_cube_1      |  
+| 11 | blue_cube_2      |  
+| 12 | blue_cube_3      |  
+| 13 | red_ prism_0     |  
+| 14 | red_prism_1      |  
+| 15 | red_prism_2      |  
+
 - Only n ≤ 16 objects will be randomly placed on the table in front of the robot;
 - From command line, a human operator will ask for the recognition of x ≤ n of them. The request will
 be made through frame_id:
@@ -34,6 +54,8 @@ $ rviz
 ```
 and ADD the topic /tag_detections (You can visualize the published information also by command line: rostopic echo /tag_detections – or launching rqt_image_view and selecting the above-mentioned topic)
 
+
+
 ## Task 2
 
 As before, n objects are on the table (yellow cylinders, red and blue cubes, red and green prisms). From
@@ -41,12 +63,11 @@ command line, a user ask for the detection of x ≤ n of them, naming their cate
 ```
 $ rosrun your_package your_node red_cube red_cube yellow_cylinder ...
 ```
-##### Homework goal:
+##### Task 2 goal:
 
-Implement a NODE that exploits the [Point Cloud Library] (PCL - http://pointclouds.org/) to detect each
+Implement a NODE that exploits the [Point Cloud Library](http://pointclouds.org/) to detect each
 object. The adopted algorithm should exploit colors or shapes in order to recognize objects. E.g., one
-known PCL 3D object recognition technique is based on [Correspondence Grouping]
-(http://pointclouds.org/documentation/tutorials/correspondence_grouping.php)
+known PCL 3D object recognition technique is based on [Correspondence Grouping](http://pointclouds.org/documentation/tutorials/correspondence_grouping.php)
 
 ##### Note:
 - Object meshes are provided (in ar_arena/meshes)
