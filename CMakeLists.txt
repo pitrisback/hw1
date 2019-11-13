@@ -8,8 +8,9 @@ project(hw1)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
+    roscpp
+    std_msgs
+    apriltag_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES hw1
-#  CATKIN_DEPENDS roscpp std_msgs
+ CATKIN_DEPENDS roscpp std_msgs apriltag_ros
 #  DEPENDS system_lib
 )
 
@@ -148,6 +149,10 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+add_executable(april_parse src/april_parse.cpp)
+add_dependencies(april_parse hw1_generate_messages_cpp)
+target_link_libraries(april_parse ${catkin_LIBRARIES})
 
 #############
 ## Install ##
