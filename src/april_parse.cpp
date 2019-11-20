@@ -5,6 +5,10 @@
 
 void chatterCallback(const apriltag_ros::AprilTagDetectionArray& msg)
 {
+    // documentation on msg structure
+    // http://docs.ros.org/kinetic/api/apriltag_ros/html/msg/AprilTagDetectionArray.html
+    // and detection object
+    // http://docs.ros.org/kinetic/api/apriltag_ros/html/msg/AprilTagDetection.html
     if (msg.detections.size() > 0) {
         apriltag_ros::AprilTagDetection first_detection = msg.detections[0];
         ROS_INFO("I heard: [%d]", first_detection.id[0]);
