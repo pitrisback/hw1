@@ -37,7 +37,7 @@ flags = [
     '-x',
     'c++',
     #  '-I/usr/include/opencv',
-    #  '-I', './include',
+    '-I', './include',
     '-I', '/opt/ros/melodic/include',
     '-I', '/home/ros/ros_ws/devel/include',
     '-I', '/usr/include/pcl-1.8',

@@ -4,28 +4,32 @@
 #include <pcl_ros/point_cloud.h>
 #include <boost/foreach.hpp>
 
+#include <PCL2Pose.h>
+
 // tutorials
 // http://wiki.ros.org/pcl_ros
 // http://wiki.ros.org/pcl/Tutorials
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-// pcl::PointCloud
 
-void callback(const PointCloud::ConstPtr& msg)
-{
-    ROS_INFO("Cloud: width = %d, height = %d", msg->width, msg->height);
-    // BOOST_FOREACH (const pcl::PointXYZ& pt, msg->points)
-        // printf ("\t(%f, %f, %f)\n", pt.x, pt.y, pt.z);
+void test_pcl2pose() {
+    std::string topic = "camera/depth/points";
+    // Kinect topic
+    // https://answers.ros.org/question/10038/getting-point-cloud-data-from-the-kinect/
+    // using regiseted is probably a good idea
+    // https://homes.cs.washington.edu/~edzhang/tutorials/kinect2/kinect3.html
+    // std::string topic = "head_mount_kinect/depth_registered/points";
+    // std::string topic = "camera/depth_registered/points";
+    PCL2Pose parser = PCL2Pose(topic);
 }
 
 int main(int argc, char** argv)
 {
-    ROS_INFO("Booting Subscriber");
+    ROS_INFO("Booting pcl_find_objects");
     ros::init(argc, argv, "sub_pcl");
-    ros::NodeHandle nh;
-    // std::string topic = "head_mount_kinect/depth_registered/points";
-    // std::string topic = "camera/depth_registered/points";
-    std::string topic = "camera/depth/points";
-    ros::Subscriber sub = nh.subscribe<PointCloud>(topic, 1, callback);
+
+    test_pcl2pose();
+
+    ROS_INFO("Spinning");
     ros::spin();
 }
