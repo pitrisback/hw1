@@ -32,30 +32,24 @@ add_definitions(${PCL_DEFINITIONS})
 
 ###### APRILTAG ######
 
-add_executable(april_parse src/april_parse.cpp)
-# add_dependencies(april_parse hw1_generate_messages_cpp)
-target_link_libraries(april_parse ${catkin_LIBRARIES})
-
-###### PCL POSE ######
-
-# PCL2Pose needs these files
-add_library(lib_pcl2pose
-    src/PCL2Pose.cpp
-    include/PCL2Pose.h
+add_executable(april_parse
+    src/april_parse.cpp
 )
 
-# PCL2Pose needs these libraries
-target_link_libraries(lib_pcl2pose
-    ${PCL_LIBRARIES}
+# add_dependencies(april_parse hw1_generate_messages_cpp)
+target_link_libraries(april_parse
     ${catkin_LIBRARIES}
 )
 
-# this is the "main" executable
+###### PCL POSE ######
+
+# pcl_find_objects needs this files
 add_executable(pcl_find_objects
     src/pcl_find_objects.cpp
 )
 
-# that needs PCL2Pose as library
+# pcl_find_objects needs this libraries
 target_link_libraries(pcl_find_objects
-    lib_pcl2pose
+    ${PCL_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
