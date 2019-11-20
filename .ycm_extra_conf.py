@@ -36,11 +36,12 @@ import ycm_core
 flags = [
     '-x',
     'c++',
-    #  '-I/usr/include/opencv',
     '-I', './include',
     '-I', '/opt/ros/melodic/include',
     '-I', '/home/ros/ros_ws/devel/include',
     '-I', '/usr/include/pcl-1.8',
+    '-I', '/usr/include/pcl-1.8/pcl/impl',
+    '-I', '/usr/include/eigen3',
 ]
 
 
