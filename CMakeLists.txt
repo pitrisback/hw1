@@ -53,3 +53,16 @@ target_link_libraries(pcl_find_objects
     ${PCL_LIBRARIES}
     ${catkin_LIBRARIES}
 )
+
+###### PCL SAVE ######
+
+# pcl_find_objects needs this files
+add_executable(pcl_save
+    src/pcl_save.cpp
+)
+
+# pcl_find_objects needs this libraries
+target_link_libraries(pcl_save
+    ${PCL_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
