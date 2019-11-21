@@ -1,12 +1,17 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include <pcl/point_types.h>
-#include <pcl_ros/point_cloud.h>
-#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl_ros/point_cloud.h>
+
 
 typedef pcl::PointCloud<pcl::PointXYZ> T_PointCloud;
-
 
 void show_cloud(T_PointCloud::Ptr & cloud,
                 std::string cloud_name,
@@ -15,13 +20,10 @@ void show_cloud(T_PointCloud::Ptr & cloud,
     std::string viewer_name = "3D Viewer";
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new
             pcl::visualization::PCLVisualizer (viewer_name));
-
-    // Define R,G,B colors for the point cloud
-    // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          // cloud_color_handler (cloud, 255, 255, 255);
   
     viewer->setBackgroundColor (0, 0, 0);
     viewer->addPointCloud<pcl::PointXYZ> (cloud, cloud_color_handler, cloud_name);
+    // prototype used:
     // bool addPointCloud(
     //      const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
     //      const PointCloudColorHandler<PointT> &color_handler,
@@ -39,7 +41,7 @@ void filter_cloud(T_PointCloud::Ptr & cloud,
         float lower_bound,
         float upper_bound
         ) {
-    // the axis are ordered XYB <-> RGB
+    // the axis are colored in order XYB <-> RGB
 
     ROS_INFO("Filtering along %s in range (%f, %f)", axis.c_str(), lower_bound, upper_bound);
 
@@ -56,8 +58,7 @@ int main(int argc, char** argv)
 {
     ROS_INFO("Booting pcl_viz");
 
-    // ros::init(argc, argv, "sub_pcl_viz");
-    // ros::NodeHandle nh;
+    // ############# load the cloud #############
 
     std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
 
@@ -69,6 +70,8 @@ int main(int argc, char** argv)
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           orig_cloud_color_handler (cloud, 255, 255, 255);
     // show_cloud(cloud, "Original", orig_cloud_color_handler);
+
+    // ############# chop the cloud #############
 
     // filter along z to keep only the table
     // filter_cloud(cloud, "z", 1.5, 2.0); // good values
@@ -97,6 +100,56 @@ int main(int argc, char** argv)
     filter_cloud(cloud, "x", lower_bound, upper_bound);
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           x_filt_color_handler (cloud, 180, 0, 255);
-    show_cloud(cloud, "Filtered x", x_filt_color_handler);
+    // show_cloud(cloud, "Filtered x", x_filt_color_handler);
+
+    // ############# find the plane #############
+    // http://pointclouds.org/documentation/tutorials/planar_segmentation.php
+
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    // Create the segmentation object
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    // Optional
+    // seg.setOptimizeCoefficients (true);
+    // Mandatory
+    seg.setModelType (pcl::SACMODEL_PLANE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setDistanceThreshold (0.01);
+
+    seg.setInputCloud (cloud);
+    seg.segment (*inliers, *coefficients);
+
+    if (inliers->indices.size () == 0) {
+        PCL_ERROR ("Could not estimate a planar model for the given dataset.");
+        return (-1);
+    }
+
+    ROS_INFO("Found %lu  plane inliers out of %lu points in the cleaned cloud",
+            inliers->indices.size (),
+            cloud->size()
+        );
+
+    // ############# remove the plane #############
+    // http://pointclouds.org/documentation/tutorials/extract_indices.php#extract-indices
+    // http://docs.pointclouds.org/1.9.0/classpcl_1_1_extract_indices.html
+    // use setNegative() to remove the plane
+
+    // Create the filtering object
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+
+    extract.setInputCloud (cloud);
+    extract.setIndices (inliers);
+    // remove the inliers
+    extract.setNegative (true);
+    extract.filter (*cloud);
+    ROS_INFO("Processed cloud: width = %d, height = %d\tsize = %lu",
+            cloud->width,
+            cloud->height,
+            cloud->size()
+            );
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+          objects_color_handler (cloud, 180, 0, 255);
+    show_cloud(cloud, "Objects", objects_color_handler);
 }
 
