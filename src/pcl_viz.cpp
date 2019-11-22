@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           objects_color_handler (cloud, 180, 0, 255);
-    show_cloud(cloud, "Objects", objects_color_handler);
+    // show_cloud(cloud, "Objects", objects_color_handler);
 
     // ############# segment the remaining points #############
     // http://pointclouds.org/documentation/tutorials/cluster_extraction.php
@@ -182,17 +182,33 @@ int main(int argc, char** argv)
         for (std::vector<int>::const_iterator pit = it->indices.begin ();
              pit != it->indices.end ();
              ++pit
-            )
-        cloud_cluster->points.push_back (cloud->points[*pit]);
+            ) {
+            cloud_cluster->points.push_back (cloud->points[*pit]);
+        }
         cloud_cluster->width = cloud_cluster->points.size ();
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        std::cout << "PointCloud representing the Cluster: "
-            << cloud_cluster->points.size () << " data points." << std::endl;
+        ROS_INFO("PointCloud representing the Cluster: size = %lu",
+                cloud_cluster->points.size());
 
         objects.push_back(cloud_cluster);
     }
-    std::cout << "Found " << objects.size () << " clusters." << std::endl;
+    ROS_INFO("Trovati %lu oggetti",objects.size ());
+
+    // for misterious reasons this complains
+    // for (std::vector<T_PointCloud::Ptr>::const_iterator it = objects.begin ();
+         // it != objects.end ();
+         // ++it
+        // ) {
+        // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+              // objects_color_handler (cloud, 180, 0, 130);
+        // // show_cloud(*it, "Objects", objects_color_handler);
+    // }
+    for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+              objects_color_handler (cloud, 180, 0, 130);
+        show_cloud(objects[i], "Objects", objects_color_handler);
+    }
 }
 
