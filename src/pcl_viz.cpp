@@ -6,10 +6,10 @@
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl_ros/point_cloud.h>
-
 
 typedef pcl::PointCloud<pcl::PointXYZ> T_PointCloud;
 
@@ -151,5 +151,48 @@ int main(int argc, char** argv)
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           objects_color_handler (cloud, 180, 0, 255);
     show_cloud(cloud, "Objects", objects_color_handler);
+
+    // ############# segment the remaining points #############
+    // http://pointclouds.org/documentation/tutorials/cluster_extraction.php
+
+    // Creating the KdTree object for the search method of the extraction
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    tree->setInputCloud (cloud);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance (0.02); // 2cm
+    ec.setMinClusterSize (100);
+    ec.setMaxClusterSize (25000);
+    ec.setSearchMethod (tree);
+    ec.setInputCloud (cloud);
+    ec.extract (cluster_indices);
+
+    // all the objects
+    std::vector<T_PointCloud::Ptr> objects;
+
+    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin ();
+         it != cluster_indices.end ();
+         ++it
+        ) {
+        // create the new cloud for a single object
+        T_PointCloud::Ptr cloud_cluster (new T_PointCloud);
+        // add all the points
+        // MAYBE could you use ExtractIndices ?
+        for (std::vector<int>::const_iterator pit = it->indices.begin ();
+             pit != it->indices.end ();
+             ++pit
+            )
+        cloud_cluster->points.push_back (cloud->points[*pit]);
+        cloud_cluster->width = cloud_cluster->points.size ();
+        cloud_cluster->height = 1;
+        cloud_cluster->is_dense = true;
+
+        std::cout << "PointCloud representing the Cluster: "
+            << cloud_cluster->points.size () << " data points." << std::endl;
+
+        objects.push_back(cloud_cluster);
+    }
+    std::cout << "Found " << objects.size () << " clusters." << std::endl;
 }
 
