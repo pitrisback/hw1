@@ -91,8 +91,11 @@ def linear_combine(a, b, t):
 
     x = t*a + (1-t)*b
     """
+    logg = logging.getLogger(f"c.{__name__}.linear_combine")
+    #  logg.debug(f"Combining {t} : {a}, {b}")
+
     assert 0 <= t <= 1, f"t has to be between 0 and 1, got {t}"
-    t1 = t - 1
+    t1 = 1 - t
     x = []
     for i in range(3):
         x.append(a[i] * t + b[i] * t1)
@@ -114,6 +117,43 @@ def sample_triangle(vertici, num_samples=10):
         for t2 in range(1, num_samples + 1):
             center_point = linear_combine(vertici[2], mid_point, t2 / ns1)
             triangle_pc.append(center_point)
+
+    return triangle_pc
+
+
+def sample_triangle_sparse(vertici, num_samples=10):
+    """create points on a triangle, more uniformly distributed
+
+    vertici is a 3-tuple of points XYZ
+
+    num_samples = 5
+              row
+    v[0]
+    '         0
+    ''        1
+    '''       2
+    ''''      3
+    '''''     4
+    v[1] v[2]
+    """
+    logg = logging.getLogger(f"c.{__name__}.sample_triangle_sparse")
+    logg.debug(f"Sampling triangle {vertici}")
+
+    triangle_pc = []
+    for row in range(num_samples):
+        t_mp = row / (num_samples - 1)
+        logg.debug(f"Row {row}, t_mp {t_mp}")
+        mp01 = linear_combine(vertici[0], vertici[1], t_mp)
+        mp02 = linear_combine(vertici[0], vertici[2], t_mp)
+        logg.debug(f"\tmp01 {mp01} mp02 {mp02}")
+        for s in range(num_samples - row):
+            if num_samples - row - 1 == 0:
+                t_s = 0
+            else:
+                t_s = s / (num_samples - row - 1)
+            inside_point = linear_combine(mp01, mp02, t_s)
+            logg.debug(f"\t\ts {s} t_s {t_s:.4f} inside_point {inside_point}")
+            triangle_pc.append(inside_point)
 
     return triangle_pc
 
@@ -156,7 +196,7 @@ def save_pc_to_ASCII(pc, pc_file):
         #  print(new_point)
         file_template += new_point
 
-    with open(pc_file, 'w') as fp:
+    with open(pc_file, "w") as fp:
         fp.write(file_template)
 
 
@@ -202,17 +242,34 @@ def run_mesh2pcl(args):
         10: (-0.043345, 0.027079, -0.105364),
         11: (-0.043345, 0.027079, 0.094636),
     }
+    #  triangles = {
+        #  0: (0, 1, 2),
+        #  #  1: (0, 2, 3),
+        #  #  2: (5, 6, 4),
+    #  }
+    #  #  scale = 100
+    #  scale = 1
+    #  vertex = {
+        #  0: tuple(a * scale for a in (0.0, 0.0, 0.0)),
+        #  1: tuple(a * scale for a in (0.0, 0.1, 0.0)),
+        #  2: tuple(a * scale for a in (0.1, 0.1, 0.0)),
+        #  3: tuple(a * scale for a in (0.1, 0.0, 0.0)),
+    #  }
 
     pcl_out = []
+    #  num_samples = 100
+    #  num_samples = 5
+    num_samples = 30
     for t in triangles:
         vertici = tuple(vertex[i] for i in triangles[t])
         logg.debug(f"Triangle {t} vertex {triangles[t]} at {vertici}")
-        triangle_pc = sample_triangle(vertici)
+        #  triangle_pc = sample_triangle(vertici, num_samples)
+        triangle_pc = sample_triangle_sparse(vertici, num_samples)
         pcl_out.extend(triangle_pc)
 
     logg.debug(f"Total points {len(pcl_out)}")
 
-    pc_file = "./pcl_data/pcl_test_from_mesh.pcl"
+    pc_file = "./pcl_data/pcl_test_from_mesh.pcd"
     save_pc_to_ASCII(pcl_out, pc_file)
 
 

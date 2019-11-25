@@ -60,7 +60,8 @@ int main(int argc, char** argv)
 
     // ############# load the cloud #############
 
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
     pcl::io::loadPCDFile(pcl_data_file, *cloud);
@@ -69,7 +70,8 @@ int main(int argc, char** argv)
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           orig_cloud_color_handler (cloud, 255, 255, 255);
-    // show_cloud(cloud, "Original", orig_cloud_color_handler);
+    show_cloud(cloud, "Original", orig_cloud_color_handler);
+    return 0;
 
     // ############# chop the cloud #############
 
