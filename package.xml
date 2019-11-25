@@ -58,6 +58,9 @@
 
   <depend>apriltag_ros</depend>
 
+  <build_depend>geometric_shapes</build_depend>
+  <exec_depend>geometric_shapes</exec_depend>
+
   <build_depend>libpcl-all-dev</build_depend>
   <exec_depend>libpcl-all</exec_depend>
 

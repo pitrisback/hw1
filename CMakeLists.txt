@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     std_msgs
     apriltag_ros
+    geometric_shapes
 )
 
 # magic pcl link
@@ -18,6 +19,7 @@ catkin_package(
         roscpp
         std_msgs
         apriltag_ros
+        geometric_shapes
 )
 
 include_directories(
@@ -76,6 +78,19 @@ add_executable(pcl_viz
 
 # pcl_find_objects needs this libraries
 target_link_libraries(pcl_viz
+    ${PCL_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
+
+###### LOAD MESHES ######
+
+# pcl_find_objects needs this files
+add_executable(load_mesh
+    src/load_mesh.cpp
+)
+
+# pcl_find_objects needs this libraries
+target_link_libraries(load_mesh
     ${PCL_LIBRARIES}
     ${catkin_LIBRARIES}
 )
