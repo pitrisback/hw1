@@ -32,16 +32,16 @@ include_directories(
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-###### APRILTAG ######
+# ###### APRILTAG ######
 
-add_executable(april_parse
-    src/april_parse.cpp
-)
+# add_executable(april_parse
+    # src/april_parse.cpp
+# )
 
-# add_dependencies(april_parse hw1_generate_messages_cpp)
-target_link_libraries(april_parse
-    ${catkin_LIBRARIES}
-)
+# # add_dependencies(april_parse hw1_generate_messages_cpp)
+# target_link_libraries(april_parse
+    # ${catkin_LIBRARIES}
+# )
 
 ###### PCL POSE ######
 
