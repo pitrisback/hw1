@@ -41,10 +41,14 @@ int main(int argc, char **argv)
 
     std::vector<int> searching_ids;
     for(int i = 1; i<argc; i++){
-        searching_ids.push_back(names2ids[argv[i]]);
-        ROS_INFO("Adding tag %d for object %s", names2ids[argv[i]], argv[i]);
+        if(names2ids.count(argv[i]) == 1) {
+            searching_ids.push_back(names2ids[argv[i]]);
+            ROS_INFO("Adding tag %d for object %s", names2ids[argv[i]], argv[i]);
+        } else {
+            ROS_INFO("NOT adding tag %d for object %s", names2ids[argv[i]], argv[i]);
+        }
     }
-    April2Pose apposer = April2Pose(1);
+    April2Pose apposer = April2Pose(searching_ids);
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe("tag_detections", 1000, 
         &April2Pose::aprilCallback, &apposer);
