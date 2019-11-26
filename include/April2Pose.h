@@ -10,11 +10,9 @@ class April2Pose {
     public:
         April2Pose(int _id);
         April2Pose(std::vector<int> _ids);
+        void aprilCallback(const apriltag_ros::AprilTagDetectionArray& msg);
     protected: 
         std::vector<int> ids; 
-        ros::NodeHandle nh;
-        ros::Subscriber sub;
-        void Subscribe();
 };
 
 #endif
