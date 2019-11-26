@@ -129,11 +129,11 @@ def sample_triangle_sparse(vertici, num_samples=10):
     num_samples = 5
               row
     v[0]
-    '         0
-    ''        1
+    '         4
+    ''        3
     '''       2
-    ''''      3
-    '''''     4
+    ''''      1
+    '''''     0
     v[1] v[2]
     """
     logg = logging.getLogger(f"c.{__name__}.sample_triangle_sparse")
