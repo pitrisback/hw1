@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/gio/ros_ws/devel/include/**",
+                "/opt/ros/melodic/include/**",
+                "/home/gio/ros_ws/src/third_party/apriltag_ros/apriltag_ros/include/**",
+                "/home/gio/ros_ws/src/third_party/common-sensors/common_sensors/include/**",
+                "/home/gio/ros_ws/src/third_party/gazebo-pkgs/gazebo_grasp_plugin/include/**",
+                "/home/gio/ros_ws/src/third_party/gazebo-pkgs/gazebo_state_plugins/include/**",
+                "/home/gio/ros_ws/src/third_party/gazebo-pkgs/gazebo_test_tools/include/**",
+                "/home/gio/ros_ws/src/third_party/gazebo-pkgs/gazebo_version_helpers/include/**",
+                "/home/gio/ros_ws/src/third_party/gazebo-pkgs/gazebo_world_plugin_loader/include/**",
+                "/home/gio/ros_ws/src/hw1/include/**",
+                "/home/gio/ros_ws/src/intro_tutorial/include/**",
+                "/home/gio/ros_ws/src/third_party/iai_kinect2/kinect2_bridge/include/**",
+                "/home/gio/ros_ws/src/third_party/iai_kinect2/kinect2_calibration/include/**",
+                "/home/gio/ros_ws/src/third_party/iai_kinect2/kinect2_registration/include/**",
+                "/home/gio/ros_ws/src/third_party/general-message-pkgs/object_msgs_tools/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_2f_gripper_action_server/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_2f_gripper_control/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_3f_gripper_articulated_gazebo_plugins/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_3f_gripper_control/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_ethercat/include/**",
+                "/home/gio/ros_ws/src/third_party/robotiq/robotiq_ft_sensor/include/**",
+                "/home/gio/ros_ws/src/third_party/universal_robot/ur_kinematics/include/**",
+                "/home/gio/ros_ws/src/third_party/ur_modern_driver/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
