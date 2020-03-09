@@ -115,32 +115,55 @@ void remove_plane(T_PointCloud::Ptr input_cloud,
 }
 
 void analyze_object(T_PointCloud::Ptr object) {
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> objects_color_handler (object, 180, 0, 130);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> rem1 (object, 0, 180, 130);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla1 (object, 0, 90, 130);
+    // colors for the clouds
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla1 (object, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla2 (object, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla3 (object, 255, 0, 0);
 
+    // cloud viewer
     std::string viewer_name = "3D Viewer";
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
 
-    ROS_INFO("Analyze a %lu points cloud",
-            object->size()
-        );
+    ROS_INFO("\nAnalyze a %lu points cloud", object->size());
 
-    // show_cloud(object, "Objects", objects_color_handler);
-
+    // distance_threshold for RANSAC
     float distance_threshold = 0.001;
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    find_plane(object, coefficients, inliers, distance_threshold);
-    ROS_INFO("Coefficients size %lu", coefficients->values.size());
 
-    T_PointCloud::Ptr plane_cloud (new T_PointCloud);
-    T_PointCloud::Ptr remaining_cloud (new T_PointCloud);
+    // find the first plane
+    pcl::ModelCoefficients::Ptr coefficients_1 (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers_1 (new pcl::PointIndices);
+    find_plane(object, coefficients_1, inliers_1, distance_threshold);
 
-    remove_plane(object, remaining_cloud, plane_cloud, inliers);
+    // split the cloud in first plane and remaining
+    T_PointCloud::Ptr plane_cloud_1 (new T_PointCloud);
+    T_PointCloud::Ptr remaining_cloud_1 (new T_PointCloud);
+    remove_plane(object, remaining_cloud_1, plane_cloud_1, inliers_1);
 
-    show_cloud(viewer, remaining_cloud, "Remaining", rem1, false);
-    show_cloud(viewer, plane_cloud, "Plane", pla1);
+    // setup second and third planes
+    pcl::ModelCoefficients::Ptr coefficients_2 (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers_2 (new pcl::PointIndices);
+    T_PointCloud::Ptr plane_cloud_2 (new T_PointCloud);
+    T_PointCloud::Ptr remaining_cloud_2 (new T_PointCloud);
+    pcl::ModelCoefficients::Ptr coefficients_3 (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers_3 (new pcl::PointIndices);
+    T_PointCloud::Ptr plane_cloud_3 (new T_PointCloud);
+    T_PointCloud::Ptr remaining_cloud_3 (new T_PointCloud);
+
+    // if the remaining_cloud_1 is there, find the second plane
+    if (remaining_cloud_1->size() > 0) {
+        find_plane(remaining_cloud_1, coefficients_2, inliers_2, distance_threshold);
+        remove_plane(remaining_cloud_1, remaining_cloud_2, plane_cloud_2, inliers_2);
+
+        if (remaining_cloud_2->size() > 0) {
+            find_plane(remaining_cloud_2, coefficients_3, inliers_3, distance_threshold);
+            remove_plane(remaining_cloud_2, remaining_cloud_3, plane_cloud_3, inliers_3);
+        }
+    }
+
+    // show_cloud(viewer, remaining_cloud_2, "Remaining_2", rem1, false);
+    show_cloud(viewer, plane_cloud_1, "Plane_1", pla1, false);
+    show_cloud(viewer, plane_cloud_2, "Plane_2", pla2, false);
+    show_cloud(viewer, plane_cloud_3, "Plane_3", pla3);
 }
 
 int main(int argc, char** argv) {
