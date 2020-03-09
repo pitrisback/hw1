@@ -13,27 +13,24 @@
 
 typedef pcl::PointCloud<pcl::PointXYZ> T_PointCloud;
 
-void show_cloud(T_PointCloud::Ptr & cloud,
+void show_cloud(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer,
+                T_PointCloud::Ptr & cloud,
                 std::string cloud_name,
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> cloud_color_handler
+                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> cloud_color_handler,
+                bool spin_now=true
         ) {
-    std::string viewer_name = "3D Viewer";
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new
-            pcl::visualization::PCLVisualizer (viewer_name));
+    // std::string viewer_name = "3D Viewer";
+    // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
   
     viewer->setBackgroundColor (0, 0, 0);
     viewer->addPointCloud<pcl::PointXYZ> (cloud, cloud_color_handler, cloud_name);
-    // prototype used:
-    // bool addPointCloud(
-    //      const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
-    //      const PointCloudColorHandler<PointT> &color_handler,
-    //      const std::string &id = "cloud",
-    //      int viewport = 0 )
 
-    viewer->initCameraParameters ();
-    viewer->addCoordinateSystem (1.0);
-    while (!viewer->wasStopped ())
-        viewer->spinOnce ( 1 );
+    if (spin_now) {
+        viewer->initCameraParameters ();
+        viewer->addCoordinateSystem (1.0);
+        while (!viewer->wasStopped ())
+            viewer->spinOnce ( 1 );
+    }
 }
 
 void filter_cloud(T_PointCloud::Ptr & cloud,
@@ -54,14 +51,106 @@ void filter_cloud(T_PointCloud::Ptr & cloud,
     pass_through.filter( *cloud );
 }
 
-int main(int argc, char** argv)
-{
+void find_plane(T_PointCloud::Ptr input_cloud,
+                pcl::ModelCoefficients::Ptr coefficients,
+                pcl::PointIndices::Ptr inliers,
+                float distance_threshold=0.01) {
+    // Optional
+    // seg.setOptimizeCoefficients (true);
+    // Create the segmentation object
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+
+    seg.setModelType (pcl::SACMODEL_PLANE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setDistanceThreshold (distance_threshold);
+
+    seg.setInputCloud (input_cloud);
+    seg.segment (*inliers, *coefficients);
+
+    if (inliers->indices.size () == 0) {
+        PCL_ERROR ("Could not estimate a planar model for the given dataset.");
+        return;
+    }
+
+    ROS_INFO("Found %lu  plane inliers out of %lu points in the cleaned cloud",
+            inliers->indices.size (),
+            input_cloud->size()
+        );
+}
+
+void remove_plane(T_PointCloud::Ptr input_cloud,
+                  T_PointCloud::Ptr remaining_cloud,
+                  T_PointCloud::Ptr plane_cloud,
+                  pcl::PointIndices::Ptr inliers) {
+
+    ROS_INFO("Input cloud: width = %d, height = %d\tsize = %lu",
+            input_cloud->width,
+            input_cloud->height,
+            input_cloud->size()
+            );
+    ROS_INFO("Inliers size %lu", inliers->indices.size());
+
+    // Create the filtering object
+    pcl::ExtractIndices<pcl::PointXYZ> extractor;
+    extractor.setInputCloud (input_cloud);
+    extractor.setIndices (inliers);
+
+    // remove the inliers
+    extractor.setNegative (true);
+    extractor.filter (*remaining_cloud);
+    ROS_INFO("Remaining cloud: width = %d, height = %d\tsize = %lu",
+            remaining_cloud->width,
+            remaining_cloud->height,
+            remaining_cloud->size()
+            );
+
+    // keep the inliers (plane)
+    extractor.setNegative (false);
+    extractor.filter (*plane_cloud);
+    ROS_INFO("Plane cloud: width = %d, height = %d\tsize = %lu",
+            plane_cloud->width,
+            plane_cloud->height,
+            plane_cloud->size()
+            );
+}
+
+void analyze_object(T_PointCloud::Ptr object) {
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> objects_color_handler (object, 180, 0, 130);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> rem1 (object, 0, 180, 130);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla1 (object, 0, 90, 130);
+
+    std::string viewer_name = "3D Viewer";
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
+
+    ROS_INFO("Analyze a %lu points cloud",
+            object->size()
+        );
+
+    // show_cloud(object, "Objects", objects_color_handler);
+
+    float distance_threshold = 0.001;
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    find_plane(object, coefficients, inliers, distance_threshold);
+    ROS_INFO("Coefficients size %lu", coefficients->values.size());
+
+    T_PointCloud::Ptr plane_cloud (new T_PointCloud);
+    T_PointCloud::Ptr remaining_cloud (new T_PointCloud);
+
+    remove_plane(object, remaining_cloud, plane_cloud, inliers);
+
+    show_cloud(viewer, remaining_cloud, "Remaining", rem1, false);
+    show_cloud(viewer, plane_cloud, "Plane", pla1);
+}
+
+int main(int argc, char** argv) {
     ROS_INFO("Booting pcl_viz");
 
     // ############# load the cloud #############
 
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
     pcl::io::loadPCDFile(pcl_data_file, *cloud);
@@ -70,8 +159,7 @@ int main(int argc, char** argv)
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           orig_cloud_color_handler (cloud, 255, 255, 255);
-    show_cloud(cloud, "Original", orig_cloud_color_handler);
-    return 0;
+    // show_cloud(cloud, "Original", orig_cloud_color_handler);
 
     // ############# chop the cloud #############
 
@@ -208,9 +296,10 @@ int main(int argc, char** argv)
         // // show_cloud(*it, "Objects", objects_color_handler);
     // }
     for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
-        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-              objects_color_handler (cloud, 180, 0, 130);
-        show_cloud(objects[i], "Objects", objects_color_handler);
+        // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+              // objects_color_handler (cloud, 180, 0, 130);
+        // show_cloud(objects[i], "Objects", objects_color_handler);
+        analyze_object(objects[i]);
     }
 }
 
