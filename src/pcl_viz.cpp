@@ -114,6 +114,36 @@ void remove_plane(T_PointCloud::Ptr input_cloud,
             );
 }
 
+float diedro(pcl::ModelCoefficients::Ptr c1,
+             pcl::ModelCoefficients::Ptr c2
+        ) {
+    // the DIEDRO angle is 
+    // n2' = -n2         ~ dot product
+    // cos(n1 n2') = (n1 . n2')/(|n1||n2'|)
+    std::vector<float> n1, n2;
+    n1.push_back(c1->values[0]);
+    n1.push_back(c1->values[1]);
+    n1.push_back(c1->values[2]);
+    n2.push_back(c2->values[0]);
+    n2.push_back(c2->values[1]);
+    n2.push_back(c2->values[2]);
+
+    // ROS_INFO("n1 %f", n1[0]);
+
+    float n1n2 = std::inner_product(n1.begin(), n1.end(), n2.begin(), 0.0);
+    // ROS_INFO("n1n2 %f", n1n2);
+
+    float norm1 = std::sqrt(std::inner_product(n1.begin(), n1.end(), n1.begin(), 0.0));
+    float norm2 = std::sqrt(std::inner_product(n2.begin(), n2.end(), n2.begin(), 0.0));
+    // ROS_INFO("norm1 %f norm2 %f", norm1, norm2);
+
+    float diedro_angle = acos(n1n2 / ( norm1 * norm2));
+    // ROS_INFO("diedro_angle %f", diedro_angle * 180 / 3.1415926535);
+
+    return diedro_angle;
+}
+
+
 void analyze_object(T_PointCloud::Ptr object) {
     // colors for the clouds
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla1 (object, 0, 0, 255);
@@ -149,12 +179,17 @@ void analyze_object(T_PointCloud::Ptr object) {
     T_PointCloud::Ptr plane_cloud_3 (new T_PointCloud);
     T_PointCloud::Ptr remaining_cloud_3 (new T_PointCloud);
 
+    bool done_2 = false;
+    bool done_3 = false;
+
     // if the remaining_cloud_1 is there, find the second plane
     if (remaining_cloud_1->size() > 0) {
+        done_2 = true;
         find_plane(remaining_cloud_1, coefficients_2, inliers_2, distance_threshold);
         remove_plane(remaining_cloud_1, remaining_cloud_2, plane_cloud_2, inliers_2);
 
         if (remaining_cloud_2->size() > 0) {
+            done_3 = true;
             find_plane(remaining_cloud_2, coefficients_3, inliers_3, distance_threshold);
             remove_plane(remaining_cloud_2, remaining_cloud_3, plane_cloud_3, inliers_3);
         }
@@ -164,6 +199,23 @@ void analyze_object(T_PointCloud::Ptr object) {
     show_cloud(viewer, plane_cloud_1, "Plane_1", pla1, false);
     show_cloud(viewer, plane_cloud_2, "Plane_2", pla2, false);
     show_cloud(viewer, plane_cloud_3, "Plane_3", pla3);
+
+    float diedro12, diedro13, diedro23;
+    ROS_INFO("Coeff 1: %f %f %f", coefficients_1->values[0], coefficients_1->values[1], coefficients_1->values[2]);
+    if (done_2) {
+        ROS_INFO("Coeff 2: %f %f %f", coefficients_2->values[0], coefficients_2->values[1], coefficients_2->values[2]);
+
+        diedro12 = diedro(coefficients_1, coefficients_2);
+        ROS_INFO("Angolo 1 2 %f", diedro12 * 180 / M_PI);
+
+        if (done_3) {
+            ROS_INFO("Coeff 3: %f %f %f", coefficients_3->values[0], coefficients_3->values[1], coefficients_3->values[2]);
+            diedro23 = diedro(coefficients_2, coefficients_3);
+            ROS_INFO("Angolo 2 3 %f", diedro23 * 180 / M_PI);
+            diedro13 = diedro(coefficients_1, coefficients_3);
+            ROS_INFO("Angolo 1 3 %f", diedro13 * 180 / M_PI);
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -171,8 +223,8 @@ int main(int argc, char** argv) {
 
     // ############# load the cloud #############
 
-    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
