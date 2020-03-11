@@ -140,9 +140,41 @@ float diedro(pcl::ModelCoefficients::Ptr c1,
     float diedro_angle = acos(n1n2 / ( norm1 * norm2));
     // ROS_INFO("diedro_angle %f", diedro_angle * 180 / 3.1415926535);
 
+    diedro_angle = diedro_angle * 180 / M_PI;
+
     return diedro_angle;
 }
 
+std::vector<float> compute_mean(T_PointCloud::Ptr object, std::vector<float> mean) {
+    float mean_x = 0;
+    float mean_y = 0;
+    float mean_z = 0;
+    for (int i=0; i < object->size(); i++) {
+        mean_x += object->points[i].x;
+        mean_y += object->points[i].y;
+        mean_z += object->points[i].z;
+    }
+
+    mean_x /= object->size();
+    mean_y /= object->size();
+    mean_z /= object->size();
+
+    mean.push_back(mean_x);
+    mean.push_back(mean_y);
+    mean.push_back(mean_z);
+    return mean;
+}
+
+bool ranger(float x, float value, float epsilon = 2) {
+    return std::abs( x - value ) < epsilon;
+}
+
+bool abs_ranger(float x, float value, float epsilon = 2) {
+    // ritorna true per -0.7 e 0.7 comparati a 0.7
+    return std::abs( std::abs(x) - value ) < epsilon;
+}
+
+// void swap() { }
 
 void analyze_object(T_PointCloud::Ptr object) {
     // colors for the clouds
@@ -200,26 +232,109 @@ void analyze_object(T_PointCloud::Ptr object) {
     show_cloud(viewer, plane_cloud_2, "Plane_2", pla2, false);
     show_cloud(viewer, plane_cloud_3, "Plane_3", pla3);
 
-    float diedro12, diedro13, diedro23;
-    ROS_INFO("Coeff 1: %f %f %f", coefficients_1->values[0], coefficients_1->values[1], coefficients_1->values[2]);
+    float diedro12 = 180, diedro13 = 180, diedro23 = 180;
+
+    float c1x = coefficients_1->values[0], c1y = coefficients_1->values[1], c1z = coefficients_1->values[2];
+    ROS_INFO("Coeff 1: %f %f %f", c1x, c1y, c1z);
+    float c2x, c2y, c2z;
+    float c3x, c3y, c3z;
     if (done_2) {
-        ROS_INFO("Coeff 2: %f %f %f", coefficients_2->values[0], coefficients_2->values[1], coefficients_2->values[2]);
+        float c2x = coefficients_2->values[0], c2y = coefficients_2->values[1], c2z = coefficients_2->values[2];
+        ROS_INFO("Coeff 2: %f %f %f", c2x, c2y, c2z);
 
         diedro12 = diedro(coefficients_1, coefficients_2);
-        ROS_INFO("Angolo 1 2 %f", diedro12 * 180 / M_PI);
+        ROS_INFO("Angolo 1 2 %f", diedro12);
 
         if (done_3) {
-            ROS_INFO("Coeff 3: %f %f %f", coefficients_3->values[0], coefficients_3->values[1], coefficients_3->values[2]);
+            float c3x = coefficients_3->values[0], c3y = coefficients_3->values[1], c3z = coefficients_3->values[2];
+            ROS_INFO("Coeff 3: %f %f %f", c3x, c3y, c3z);
             diedro23 = diedro(coefficients_2, coefficients_3);
-            ROS_INFO("Angolo 2 3 %f", diedro23 * 180 / M_PI);
+            ROS_INFO("Angolo 2 3 %f", diedro23);
             diedro13 = diedro(coefficients_1, coefficients_3);
-            ROS_INFO("Angolo 1 3 %f", diedro13 * 180 / M_PI);
+            ROS_INFO("Angolo 1 3 %f", diedro13);
+        }
+    }
+
+    // parse the angles found
+    float sort_diedro_1 = diedro12, sort_diedro_2 = diedro13, sort_diedro_3 = diedro23;
+    if (ranger(sort_diedro_1, 120)) sort_diedro_1 -= 60;
+    if (ranger(sort_diedro_2, 120)) sort_diedro_2 -= 60;
+    if (ranger(sort_diedro_3, 120)) sort_diedro_3 -= 60;
+    if (ranger(sort_diedro_1, 135)) sort_diedro_1 -= 90;
+    if (ranger(sort_diedro_2, 135)) sort_diedro_2 -= 90;
+    if (ranger(sort_diedro_3, 135)) sort_diedro_3 -= 90;
+    // bubble sort them
+    if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
+    if (sort_diedro_2 > sort_diedro_3) std::swap(sort_diedro_2, sort_diedro_3);
+    if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
+    ROS_INFO("Sort Angolo 1 2 %f", sort_diedro_1);
+    ROS_INFO("Sort Angolo 1 3 %f", sort_diedro_2);
+    ROS_INFO("Sort Angolo 2 3 %f", sort_diedro_3);
+
+    // 45 90 90 vertice dello spigolo acuto prisma triangolare
+    // 60 60 60 prisma esagonale di cui vedo le tre facce laterali
+    // 60 90 90 prisma esagonale di cui vedo due laterali e sopra
+    // 90 90 90 cubo o spigolo sfighez del prisma triangolare
+
+    float sqrt22 = std::sqrt(2) / 2;
+    float sqrt32 = std::sqrt(3) / 2;
+    int type_forma = 0;
+    // 1 cubo
+    // 2 triangolo
+    // 3 esagono
+
+    if (done_2 == false) {
+        // only one face found
+        // capire il tipo di faccia per distinguere triangolo quadrato esagono
+        // triangolo visto molto di lato, esagono in piedi o cubo
+        if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
+            // triangolo!
+            type_forma = 2;
+        } else if (true) {
+        }
+    } else {
+        if (done_3 == false) {
+            // two faces found
+            // puo' essere triangolo, cubo o esagono DISTESO, ma non esagono in piedi
+            if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
+                // triangolo!
+                type_forma = 2;
+            } else if (abs_ranger(c1z, sqrt32, 0.1) || abs_ranger(c2z, sqrt32, 0.1) || abs_ranger(c3z, sqrt32, 0.1)) {
+                // esagono disteso
+                type_forma = 3;
+            } else {
+                // cubo!
+                type_forma = 1;
+            }
+        } else {
+            // three faces found
+            if (ranger(sort_diedro_1, 45)) {
+                // e' un triangolo di sicuro
+                type_forma = 2;
+            } else if (ranger(sort_diedro_1, 60)) {
+                // e' un esagono di sicuro
+                type_forma = 3;
+            } else {
+                // forse cubo, forse triangolo
+                // analizzo il coefficiente sulla z e vedo se e' vicino a sqrt(2)/2
+                if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
+                    // triangolo!
+                    type_forma = 2;
+                } else {
+                    // cubo!
+                    type_forma = 1;
+                }
+            }
         }
     }
 }
 
 int main(int argc, char** argv) {
     ROS_INFO("Booting pcl_viz");
+
+    // cloud viewer
+    std::string viewer_name = "3D Viewer";
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
 
     // ############# load the cloud #############
 
@@ -234,12 +349,12 @@ int main(int argc, char** argv) {
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
           orig_cloud_color_handler (cloud, 255, 255, 255);
-    // show_cloud(cloud, "Original", orig_cloud_color_handler);
+    show_cloud(viewer, cloud, "Original", orig_cloud_color_handler);
 
     // ############# chop the cloud #############
 
     // filter along z to keep only the table
-    // filter_cloud(cloud, "z", 1.5, 2.0); // good values
+    // filter_cloud(cloud, "z", 1, 2.0); // good values
     // filter_cloud(cloud, "y", -0.5, 0.3); // good values
     // filter_cloud(cloud, "x", -0.5, 0.5); // good values
 
@@ -247,25 +362,22 @@ int main(int argc, char** argv) {
     float lower_bound = std::atof(argv[1]);
     float upper_bound = std::atof(argv[2]);
     filter_cloud(cloud, "z", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          z_filt_color_handler (cloud, 0, 180, 255);
-    // show_cloud(cloud, "Filtered z", z_filt_color_handler);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> z_filt_color_handler (cloud, 0, 180, 255);
+    show_cloud(viewer, cloud, "Filtered z", z_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[3], argv[4]);
     lower_bound = std::atof(argv[3]);
     upper_bound = std::atof(argv[4]);
     filter_cloud(cloud, "y", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          y_filt_color_handler (cloud, 180, 0, 255);
-    // show_cloud(cloud, "Filtered y", y_filt_color_handler);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> y_filt_color_handler (cloud, 180, 0, 255);
+    show_cloud(viewer, cloud, "Filtered y", y_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[5], argv[6]);
     lower_bound = std::atof(argv[5]);
     upper_bound = std::atof(argv[6]);
     filter_cloud(cloud, "x", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          x_filt_color_handler (cloud, 180, 0, 255);
-    // show_cloud(cloud, "Filtered x", x_filt_color_handler);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> x_filt_color_handler (cloud, 90, 90, 255);
+    show_cloud(viewer, cloud, "Filtered x", x_filt_color_handler);
 
     // ############# find the plane #############
     // http://pointclouds.org/documentation/tutorials/planar_segmentation.php
@@ -313,9 +425,8 @@ int main(int argc, char** argv) {
             cloud->size()
             );
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          objects_color_handler (cloud, 180, 0, 255);
-    // show_cloud(cloud, "Objects", objects_color_handler);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> objects_color_handler (cloud, 0, 0, 255);
+    show_cloud(viewer, cloud, "Objects", objects_color_handler, true);
 
     // ############# segment the remaining points #############
     // http://pointclouds.org/documentation/tutorials/cluster_extraction.php
