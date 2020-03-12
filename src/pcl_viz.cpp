@@ -46,8 +46,6 @@ void filter_cloud(T_PointCloud::Ptr & cloud,
 
     pcl::PassThrough<T_Point> pass_through;
     pass_through.setInputCloud (cloud);
-    // pass_through.setFilterLimits (0.0, 0.5);
-    // pass_through.setFilterFieldName ("z");
     pass_through.setFilterLimits (lower_bound, upper_bound);
     pass_through.setFilterFieldName (axis);
     pass_through.filter( *cloud );
@@ -271,7 +269,6 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     while (vertici_trovati.size() < 6 && trovato) {
         trovato = trova_vertice(faccia_orizzontale, centro, raggio_nuvola, vertici_trovati, epsilon_interno, epsilon_vertice);
         // ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
-        sleep(1);
     }
 
     ROS_INFO("Trovati %lu", vertici_trovati.size());
