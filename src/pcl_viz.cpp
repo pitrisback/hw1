@@ -11,19 +11,21 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl_ros/point_cloud.h>
 
-typedef pcl::PointCloud<pcl::PointXYZ> T_PointCloud;
+// typedef pcl::PointCloud<pcl::PointXYZ> T_PointCloud;
+typedef pcl::PointXYZRGB T_Point;
+typedef pcl::PointCloud<pcl::PointXYZRGB> T_PointCloud;
 
 void show_cloud(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer,
                 T_PointCloud::Ptr & cloud,
                 std::string cloud_name,
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> cloud_color_handler,
+                pcl::visualization::PointCloudColorHandlerCustom<T_Point> cloud_color_handler,
                 bool spin_now=true
         ) {
     // std::string viewer_name = "3D Viewer";
     // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
   
     viewer->setBackgroundColor (0, 0, 0);
-    viewer->addPointCloud<pcl::PointXYZ> (cloud, cloud_color_handler, cloud_name);
+    viewer->addPointCloud<T_Point> (cloud, cloud_color_handler, cloud_name);
 
     if (spin_now) {
         viewer->initCameraParameters ();
@@ -42,7 +44,7 @@ void filter_cloud(T_PointCloud::Ptr & cloud,
 
     ROS_INFO("Filtering along %s in range (%f, %f)", axis.c_str(), lower_bound, upper_bound);
 
-    pcl::PassThrough<pcl::PointXYZ> pass_through;
+    pcl::PassThrough<T_Point> pass_through;
     pass_through.setInputCloud (cloud);
     // pass_through.setFilterLimits (0.0, 0.5);
     // pass_through.setFilterFieldName ("z");
@@ -58,7 +60,7 @@ void find_plane(T_PointCloud::Ptr input_cloud,
     // Optional
     // seg.setOptimizeCoefficients (true);
     // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    pcl::SACSegmentation<T_Point> seg;
 
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
@@ -91,7 +93,7 @@ void remove_plane(T_PointCloud::Ptr input_cloud,
     ROS_INFO("Inliers size %lu", inliers->indices.size());
 
     // Create the filtering object
-    pcl::ExtractIndices<pcl::PointXYZ> extractor;
+    pcl::ExtractIndices<T_Point> extractor;
     extractor.setInputCloud (input_cloud);
     extractor.setIndices (inliers);
 
@@ -145,7 +147,7 @@ float diedro(pcl::ModelCoefficients::Ptr c1,
     return diedro_angle;
 }
 
-pcl::PointXYZ compute_mean(T_PointCloud::Ptr some_cloud) {
+T_Point compute_mean(T_PointCloud::Ptr some_cloud) {
     float mean_x = 0;
     float mean_y = 0;
     float mean_z = 0;
@@ -158,14 +160,14 @@ pcl::PointXYZ compute_mean(T_PointCloud::Ptr some_cloud) {
     mean_y /= some_cloud->size();
     mean_z /= some_cloud->size();
 
-    pcl::PointXYZ mean;
+    T_Point mean;
     mean.x = mean_x;
     mean.y = mean_y;
     mean.z = mean_z;
     return mean;
 }
 
-float distance_3D(pcl::PointXYZ a, pcl::PointXYZ b) {
+float distance_3D(T_Point a, T_Point b) {
     return std::sqrt(
                 pow((a.x-b.x), 2) +
                 pow((a.y-b.y), 2) +
@@ -183,9 +185,9 @@ bool abs_ranger(float x, float value, float epsilon = 2) {
 }
 
 bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
-                   pcl::PointXYZ centro,
+                   T_Point centro,
                    float raggio_nuvola,
-                   std::vector<pcl::PointXYZ> & vertici_trovati,
+                   std::vector<T_Point> & vertici_trovati,
                    float epsilon_interno,
                    float epsilon_vertice
                    ) {
@@ -244,12 +246,12 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     std::string viewer_name = "3D Viewer";
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
     // colors for the clouds
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_B (faccia_orizzontale, 0, 0, 255);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_G (faccia_orizzontale, 0, 255, 0);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_R (faccia_orizzontale, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_B (faccia_orizzontale, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_G (faccia_orizzontale, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_R (faccia_orizzontale, 255, 0, 0);
 
     // centro della nuvola
-    pcl::PointXYZ centro = compute_mean(faccia_orizzontale);
+    T_Point centro = compute_mean(faccia_orizzontale);
 
     // trova il raggio
     float raggio_nuvola = 0;
@@ -263,7 +265,7 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     float epsilon_interno = 0.85;
     float epsilon_vertice = 0.5;
 
-    std::vector<pcl::PointXYZ> vertici_trovati;
+    std::vector<T_Point> vertici_trovati;
 
     bool trovato = true;
     while (vertici_trovati.size() < 6 && trovato) {
@@ -278,9 +280,9 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
 
 void analyze_object(T_PointCloud::Ptr object) {
     // colors for the clouds
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla1 (object, 0, 0, 255);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla2 (object, 0, 255, 0);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> pla3 (object, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla1 (object, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla2 (object, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla3 (object, 255, 0, 0);
 
     // cloud viewer
     std::string viewer_name = "3D Viewer";
@@ -479,8 +481,7 @@ int main(int argc, char** argv) {
 
     ROS_INFO("Loaded cloud: width = %d, height = %d", cloud->width, cloud->height);
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
-          orig_cloud_color_handler (cloud, 255, 255, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> orig_cloud_color_handler (cloud, 255, 255, 255);
     show_cloud(viewer, cloud, "Original", orig_cloud_color_handler);
 
     // ############# chop the cloud #############
@@ -494,21 +495,21 @@ int main(int argc, char** argv) {
     float lower_bound = std::atof(argv[1]);
     float upper_bound = std::atof(argv[2]);
     filter_cloud(cloud, "z", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> z_filt_color_handler (cloud, 0, 180, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> z_filt_color_handler (cloud, 0, 180, 255);
     show_cloud(viewer, cloud, "Filtered z", z_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[3], argv[4]);
     lower_bound = std::atof(argv[3]);
     upper_bound = std::atof(argv[4]);
     filter_cloud(cloud, "y", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> y_filt_color_handler (cloud, 180, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> y_filt_color_handler (cloud, 180, 0, 255);
     show_cloud(viewer, cloud, "Filtered y", y_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[5], argv[6]);
     lower_bound = std::atof(argv[5]);
     upper_bound = std::atof(argv[6]);
     filter_cloud(cloud, "x", lower_bound, upper_bound);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> x_filt_color_handler (cloud, 90, 90, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> x_filt_color_handler (cloud, 90, 90, 255);
     show_cloud(viewer, cloud, "Filtered x", x_filt_color_handler);
 
     // ############# find the plane #############
@@ -517,7 +518,7 @@ int main(int argc, char** argv) {
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
     // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    pcl::SACSegmentation<T_Point> seg;
     // Optional
     // seg.setOptimizeCoefficients (true);
     // Mandatory
@@ -544,7 +545,7 @@ int main(int argc, char** argv) {
     // use setNegative() to remove the plane
 
     // Create the filtering object
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    pcl::ExtractIndices<T_Point> extract;
 
     extract.setInputCloud (cloud);
     extract.setIndices (inliers);
@@ -557,18 +558,18 @@ int main(int argc, char** argv) {
             cloud->size()
             );
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> objects_color_handler (cloud, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> objects_color_handler (cloud, 0, 0, 255);
     show_cloud(viewer, cloud, "Objects", objects_color_handler, true);
 
     // ############# segment the remaining points #############
     // http://pointclouds.org/documentation/tutorials/cluster_extraction.php
 
     // Creating the KdTree object for the search method of the extraction
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    pcl::search::KdTree<T_Point>::Ptr tree (new pcl::search::KdTree<T_Point>);
     tree->setInputCloud (cloud);
 
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    pcl::EuclideanClusterExtraction<T_Point> ec;
     ec.setClusterTolerance (0.02); // 2cm
     ec.setMinClusterSize (100);
     ec.setMaxClusterSize (25000);
@@ -609,12 +610,12 @@ int main(int argc, char** argv) {
          // it != objects.end ();
          // ++it
         // ) {
-        // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+        // pcl::visualization::PointCloudColorHandlerCustom<T_Point>
               // objects_color_handler (cloud, 180, 0, 130);
         // // show_cloud(*it, "Objects", objects_color_handler);
     // }
     for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
-        // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>
+        // pcl::visualization::PointCloudColorHandlerCustom<T_Point>
               // objects_color_handler (cloud, 180, 0, 130);
         // show_cloud(objects[i], "Objects", objects_color_handler);
         analyze_object(objects[i]);
