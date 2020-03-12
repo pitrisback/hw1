@@ -195,7 +195,7 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
     float max_dist = 0;
     int indice_vertice = -1;
     bool trovato = false;
-    ROS_INFO("Inizia ricerca");
+    // ROS_INFO("Inizia ricerca");
 
     for (int i = 0; i < faccia_orizzontale->size(); i++) {
         float dist_centro = distance_3D(centro, faccia_orizzontale->points[i]);
@@ -209,9 +209,9 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
         bool reject = false;
         for (int j = 0; j < vertici_trovati.size() && !reject; j++) {
             float dist_vert = distance_3D(vertici_trovati[j], faccia_orizzontale->points[i]);
-            ROS_INFO("controllo vertice %d sul punto %d dist_vert %f dist_centro %f", j, i, dist_vert, dist_centro);
+            // ROS_INFO("controllo vertice %d sul punto %d dist_vert %f dist_centro %f", j, i, dist_vert, dist_centro);
             if (dist_vert < raggio_nuvola * epsilon_vertice ) {
-                ROS_INFO("Reject da vertice %d sul punto %d %f", j, i, dist_vert);
+                // ROS_INFO("Reject da vertice %d sul punto %d %f", j, i, dist_vert);
                 // continue;
                 reject = true;
             }
@@ -224,14 +224,14 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
             max_dist = dist_centro;
             indice_vertice = i;
             trovato = true;
-            ROS_INFO("trovato nuovo max_dist temp punto[%d] %f", i, dist_centro);
+            // ROS_INFO("trovato nuovo max_dist temp punto[%d] %f", i, dist_centro);
         }
     }
 
     if (trovato) {
         // aggiungi il punto valido a massima distanza alla lista di vertici
         vertici_trovati.push_back(faccia_orizzontale->points[indice_vertice]);
-        ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
+        // ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
         ROS_INFO("Aggiunto a vertici_trovat indice %d", indice_vertice);
     }
 
@@ -239,7 +239,7 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
 }
 
 int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
-    ROS_INFO("Inizia conta_vertici");
+    // ROS_INFO("Inizia conta_vertici");
     ROS_INFO("Size faccia_orizzontale %lu", faccia_orizzontale->size());
 
     // cloud viewer
@@ -257,7 +257,7 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     float raggio_nuvola = 0;
     for (int i = 0; i < faccia_orizzontale->size(); i++) {
         float dist = distance_3D(centro, faccia_orizzontale->points[i]);
-        ROS_INFO("dist centro punto[%d] %f", i, dist);
+        // ROS_INFO("dist centro punto[%d] %f", i, dist);
         if (dist > raggio_nuvola) raggio_nuvola = dist;
     }
     ROS_INFO("Raggio nuvola %f", raggio_nuvola);
@@ -270,12 +270,15 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     bool trovato = true;
     while (vertici_trovati.size() < 6 && trovato) {
         trovato = trova_vertice(faccia_orizzontale, centro, raggio_nuvola, vertici_trovati, epsilon_interno, epsilon_vertice);
-        ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
+        // ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
         sleep(1);
     }
 
     ROS_INFO("Trovati %lu", vertici_trovati.size());
     return vertici_trovati.size();
+}
+
+int median_color(T_PointCloud::Ptr object) {
 }
 
 void analyze_object(T_PointCloud::Ptr object) {
@@ -369,9 +372,9 @@ void analyze_object(T_PointCloud::Ptr object) {
     if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
     if (sort_diedro_2 > sort_diedro_3) std::swap(sort_diedro_2, sort_diedro_3);
     if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
-    ROS_INFO("Sort Angolo 1 2 %f", sort_diedro_1);
-    ROS_INFO("Sort Angolo 1 3 %f", sort_diedro_2);
-    ROS_INFO("Sort Angolo 2 3 %f", sort_diedro_3);
+    ROS_INFO("Sort Angolo 1 %f", sort_diedro_1);
+    ROS_INFO("Sort Angolo 2 %f", sort_diedro_2);
+    ROS_INFO("Sort Angolo 3 %f", sort_diedro_3);
 
     // 45 90 90 vertice dello spigolo acuto prisma triangolare
     // 60 60 60 prisma esagonale di cui vedo le tre facce laterali
@@ -473,8 +476,10 @@ int main(int argc, char** argv) {
     // ############# load the cloud #############
 
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_5obj.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_6obj.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
     pcl::io::loadPCDFile(pcl_data_file, *cloud);

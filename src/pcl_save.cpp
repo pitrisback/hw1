@@ -13,7 +13,8 @@ void callback_main(const T_PointCloud::ConstPtr& msg) {
     // std::string pcl_data_file = "../pcl_data/pcl_kinect.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_3obj.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_5obj.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_6obj.pcd";
 
     ROS_INFO("Saving cloud: width = %d, height = %d", msg->width, msg->height);
     pcl::io::savePCDFileASCII(pcl_data_file, *msg);
