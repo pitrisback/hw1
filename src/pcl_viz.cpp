@@ -279,6 +279,59 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
 }
 
 int median_color(T_PointCloud::Ptr object) {
+    int freq_r = 0;
+    int freq_g = 0;
+    int freq_b = 0;
+    int freq_c = 0;
+    int freq_m = 0;
+    int freq_y = 0;
+    int freq_black = 0;
+    int freq_white = 0;
+    uint8_t delta = 50;
+
+    for (int i = 0; i < object->size(); i++) {
+        uint8_t r = object->points[i].r;
+        uint8_t g = object->points[i].g;
+        uint8_t b = object->points[i].b;
+        // ROS_INFO("RGB %hhu %hhu %hhu", r, g, b);
+
+        if (r > g + delta && r > b + delta) {
+            // red molto rossi
+            freq_r += 1;
+        } else if (g > r + delta && g > b + delta) {
+            // green molto verdi
+            freq_g += 1;
+        } else if (b > r + delta && b > g + delta) {
+            // blue molto blu
+            freq_b += 1;
+        } else if (g > r + delta && b > r + delta) {
+            // ciano = green + blue
+            freq_c += 1;
+        } else if (g > b + delta && r > b + delta) {
+            // yellow = green + red
+            freq_y += 1;
+        } else if (r > g + delta && b > g + delta) {
+            // magenta = red + blue
+            freq_m += 1;
+        } else if (r < delta && g < delta && b < delta ) {
+            // black
+            freq_black += 1;
+        } else {
+            // white lol
+            freq_white += 1;
+        }
+    }
+    ROS_INFO("Freq RGB %d %d %d CMY %d %d %d BW %d %d", freq_r, freq_g, freq_b, freq_c, freq_m, freq_y, freq_black, freq_white);
+
+    int freq [6] = { freq_r, freq_g, freq_b, freq_c, freq_m, freq_y };
+    int max_index = 0;
+    for (int i = 0; i < 6; i++) {
+        if (freq[i] > freq[max_index]) {
+            max_index = i;
+        }
+    }
+    ROS_INFO("Max index %d", max_index);
+    return max_index;
 }
 
 void analyze_object(T_PointCloud::Ptr object) {
@@ -464,6 +517,8 @@ void analyze_object(T_PointCloud::Ptr object) {
             }
         }
     }
+
+    median_color(object);
 }
 
 int main(int argc, char** argv) {
