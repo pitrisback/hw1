@@ -145,24 +145,32 @@ float diedro(pcl::ModelCoefficients::Ptr c1,
     return diedro_angle;
 }
 
-std::vector<float> compute_mean(T_PointCloud::Ptr object, std::vector<float> mean) {
+pcl::PointXYZ compute_mean(T_PointCloud::Ptr some_cloud) {
     float mean_x = 0;
     float mean_y = 0;
     float mean_z = 0;
-    for (int i=0; i < object->size(); i++) {
-        mean_x += object->points[i].x;
-        mean_y += object->points[i].y;
-        mean_z += object->points[i].z;
+    for (int i=0; i < some_cloud->size(); i++) {
+        mean_x += some_cloud->points[i].x;
+        mean_y += some_cloud->points[i].y;
+        mean_z += some_cloud->points[i].z;
     }
+    mean_x /= some_cloud->size();
+    mean_y /= some_cloud->size();
+    mean_z /= some_cloud->size();
 
-    mean_x /= object->size();
-    mean_y /= object->size();
-    mean_z /= object->size();
-
-    mean.push_back(mean_x);
-    mean.push_back(mean_y);
-    mean.push_back(mean_z);
+    pcl::PointXYZ mean;
+    mean.x = mean_x;
+    mean.y = mean_y;
+    mean.z = mean_z;
     return mean;
+}
+
+float distance_3D(pcl::PointXYZ a, pcl::PointXYZ b) {
+    return std::sqrt(
+                pow((a.x-b.x), 2) +
+                pow((a.y-b.y), 2) +
+                pow((a.z-b.z), 2)
+            );
 }
 
 bool ranger(float x, float value, float epsilon = 2) {
@@ -174,7 +182,81 @@ bool abs_ranger(float x, float value, float epsilon = 2) {
     return std::abs( std::abs(x) - value ) < epsilon;
 }
 
-// void swap() { }
+bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
+                   pcl::PointXYZ centro,
+                   float raggio_nuvola,
+                   std::vector<pcl::PointXYZ> vertici_trovati,
+                   float epsilon_interno,
+                   float epsilon_vertice
+                   ) {
+
+    float max_dist = 0;
+    int indice_vertice = -1;
+    bool trovato = false;
+
+    for (int i = 0; i < faccia_orizzontale->size(); i++) {
+        float dist_centro = distance_3D(centro, faccia_orizzontale->points[i]);
+
+        if (dist_centro < raggio_nuvola * epsilon_interno ) {
+            // punto troppo vicino al centro
+            continue;
+        }
+
+        // controlla che non sia troppo vicino ai vertici trovati
+        for (int j = 0; j < vertici_trovati.size(); j++) {
+            float dist_vert = distance_3D(vertici_trovati[j], faccia_orizzontale->points[i]);
+            if (dist_vert < raggio_nuvola * epsilon_vertice ) {
+                continue;
+            }
+        }
+
+        // se il punto e' il piu' lontano per ora
+        if (dist_centro > max_dist) {
+            max_dist = dist_centro;
+            indice_vertice = i;
+            trovato = true;
+        }
+    }
+
+    if (trovato) {
+        // aggiungi il punto valido a massima distanza alla lista di vertici
+        vertici_trovati.push_back(faccia_orizzontale->points[indice_vertice]);
+    }
+
+    return trovato;
+}
+
+int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
+    // cloud viewer
+    std::string viewer_name = "3D Viewer";
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
+    // colors for the clouds
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_B (faccia_orizzontale, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_G (faccia_orizzontale, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> c_R (faccia_orizzontale, 255, 0, 0);
+
+    // centro della nuvola
+    pcl::PointXYZ centro = compute_mean(faccia_orizzontale);
+
+    // trova il raggio
+    float raggio_nuvola = 0;
+    for (int i = 0; i < faccia_orizzontale->size(); i++) {
+        float dist = distance_3D(centro, faccia_orizzontale->points[i]);
+        if (dist > raggio_nuvola) raggio_nuvola = dist;
+    }
+
+    float epsilon_interno = 0.8;
+    float epsilon_vertice = 0.8;
+
+    std::vector<pcl::PointXYZ> vertici_trovati;
+
+    bool trovato = true;
+    while (vertici_trovati.size() < 6 && trovato) {
+        trovato = trova_vertice(faccia_orizzontale, centro, raggio_nuvola, vertici_trovati, epsilon_interno, epsilon_vertice);
+    }
+
+    return vertici_trovati.size();
+}
 
 void analyze_object(T_PointCloud::Ptr object) {
     // colors for the clouds
@@ -290,7 +372,26 @@ void analyze_object(T_PointCloud::Ptr object) {
         if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
             // triangolo!
             type_forma = 2;
-        } else if (true) {
+        } else {
+            // trova la faccia orizzontale
+            float coeff_orizzontale = 0;
+            T_PointCloud::Ptr faccia_orizzontale;
+            if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
+                faccia_orizzontale = plane_cloud_1;
+            } else if (abs_ranger(c2z, coeff_orizzontale, 0.1)) {
+                faccia_orizzontale = plane_cloud_2;
+            } else {
+                faccia_orizzontale = plane_cloud_3;
+            }
+            // conta i vertici
+            int vertici = conta_vertici(faccia_orizzontale);
+            if (vertici == 4) {
+                // cubo!
+                type_forma = 1;
+            } else {
+                // esagono
+                type_forma = 3;
+            }
         }
     } else {
         if (done_3 == false) {
