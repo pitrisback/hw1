@@ -278,7 +278,7 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     return vertici_trovati.size();
 }
 
-int median_color(T_PointCloud::Ptr object) {
+int analyze_color(T_PointCloud::Ptr object) {
     int freq_r = 0;
     int freq_g = 0;
     int freq_b = 0;
@@ -518,7 +518,34 @@ void analyze_object(T_PointCloud::Ptr object) {
         }
     }
 
-    median_color(object);
+    int color = analyze_color(object);
+
+    if (type_forma == 1) {
+        // cubi
+        if (color == 0) {
+            ROS_INFO("Cubo rosso");
+        } else if (color == 2) {
+            ROS_INFO("Cubo blue");
+        } else {
+            ROS_INFO("Cubo FALLITO colore incompatibile");
+        }
+    } else if (type_forma == 2) {
+        // triangoli
+        if (color == 0) {
+            ROS_INFO("Triangolo rosso");
+        } else if (color == 1) {
+            ROS_INFO("Triangolo verde");
+        } else {
+            ROS_INFO("Triangolo FALLITO colore incompatibile");
+        }
+    } else if (type_forma == 3) {
+        // esagoni
+        if (color == 5) {
+            ROS_INFO("Esagono giallo");
+        } else {
+            ROS_INFO("Esagono FALLITO colore incompatibile");
+        }
+    }
 }
 
 int main(int argc, char** argv) {
