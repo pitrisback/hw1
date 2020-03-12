@@ -185,7 +185,7 @@ bool abs_ranger(float x, float value, float epsilon = 2) {
 bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
                    pcl::PointXYZ centro,
                    float raggio_nuvola,
-                   std::vector<pcl::PointXYZ> vertici_trovati,
+                   std::vector<pcl::PointXYZ> & vertici_trovati,
                    float epsilon_interno,
                    float epsilon_vertice
                    ) {
@@ -193,6 +193,7 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
     float max_dist = 0;
     int indice_vertice = -1;
     bool trovato = false;
+    ROS_INFO("Inizia ricerca");
 
     for (int i = 0; i < faccia_orizzontale->size(); i++) {
         float dist_centro = distance_3D(centro, faccia_orizzontale->points[i]);
@@ -203,30 +204,42 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
         }
 
         // controlla che non sia troppo vicino ai vertici trovati
-        for (int j = 0; j < vertici_trovati.size(); j++) {
+        bool reject = false;
+        for (int j = 0; j < vertici_trovati.size() && !reject; j++) {
             float dist_vert = distance_3D(vertici_trovati[j], faccia_orizzontale->points[i]);
+            ROS_INFO("controllo vertice %d sul punto %d dist_vert %f dist_centro %f", j, i, dist_vert, dist_centro);
             if (dist_vert < raggio_nuvola * epsilon_vertice ) {
-                continue;
+                ROS_INFO("Reject da vertice %d sul punto %d %f", j, i, dist_vert);
+                // continue;
+                reject = true;
             }
         }
+        // if the point is too close to one of the old vertex found, go to the next point
+        if (reject) continue;
 
         // se il punto e' il piu' lontano per ora
         if (dist_centro > max_dist) {
             max_dist = dist_centro;
             indice_vertice = i;
             trovato = true;
+            ROS_INFO("trovato nuovo max_dist temp punto[%d] %f", i, dist_centro);
         }
     }
 
     if (trovato) {
         // aggiungi il punto valido a massima distanza alla lista di vertici
         vertici_trovati.push_back(faccia_orizzontale->points[indice_vertice]);
+        ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
+        ROS_INFO("Aggiunto a vertici_trovat indice %d", indice_vertice);
     }
 
     return trovato;
 }
 
 int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
+    ROS_INFO("Inizia conta_vertici");
+    ROS_INFO("Size faccia_orizzontale %lu", faccia_orizzontale->size());
+
     // cloud viewer
     std::string viewer_name = "3D Viewer";
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
@@ -242,19 +255,24 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     float raggio_nuvola = 0;
     for (int i = 0; i < faccia_orizzontale->size(); i++) {
         float dist = distance_3D(centro, faccia_orizzontale->points[i]);
+        ROS_INFO("dist centro punto[%d] %f", i, dist);
         if (dist > raggio_nuvola) raggio_nuvola = dist;
     }
+    ROS_INFO("Raggio nuvola %f", raggio_nuvola);
 
-    float epsilon_interno = 0.8;
-    float epsilon_vertice = 0.8;
+    float epsilon_interno = 0.85;
+    float epsilon_vertice = 0.5;
 
     std::vector<pcl::PointXYZ> vertici_trovati;
 
     bool trovato = true;
     while (vertici_trovati.size() < 6 && trovato) {
         trovato = trova_vertice(faccia_orizzontale, centro, raggio_nuvola, vertici_trovati, epsilon_interno, epsilon_vertice);
+        ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
+        sleep(1);
     }
 
+    ROS_INFO("Trovati %lu", vertici_trovati.size());
     return vertici_trovati.size();
 }
 
@@ -297,12 +315,12 @@ void analyze_object(T_PointCloud::Ptr object) {
     bool done_3 = false;
 
     // if the remaining_cloud_1 is there, find the second plane
-    if (remaining_cloud_1->size() > 0) {
+    if (remaining_cloud_1->size() > 30) {
         done_2 = true;
         find_plane(remaining_cloud_1, coefficients_2, inliers_2, distance_threshold);
         remove_plane(remaining_cloud_1, remaining_cloud_2, plane_cloud_2, inliers_2);
 
-        if (remaining_cloud_2->size() > 0) {
+        if (remaining_cloud_2->size() > 30) {
             done_3 = true;
             find_plane(remaining_cloud_2, coefficients_3, inliers_3, distance_threshold);
             remove_plane(remaining_cloud_2, remaining_cloud_3, plane_cloud_3, inliers_3);
@@ -372,25 +390,31 @@ void analyze_object(T_PointCloud::Ptr object) {
         if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
             // triangolo!
             type_forma = 2;
+            ROS_INFO("Triangolo vedo una faccia");
         } else {
             // trova la faccia orizzontale
-            float coeff_orizzontale = 0;
+            float coeff_orizzontale = 1;
             T_PointCloud::Ptr faccia_orizzontale;
             if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
                 faccia_orizzontale = plane_cloud_1;
+                ROS_INFO("Prima faccia orizzontale");
             } else if (abs_ranger(c2z, coeff_orizzontale, 0.1)) {
                 faccia_orizzontale = plane_cloud_2;
+                ROS_INFO("Seconda faccia orizzontale");
             } else {
                 faccia_orizzontale = plane_cloud_3;
+                ROS_INFO("Terzo faccia orizzontale");
             }
             // conta i vertici
             int vertici = conta_vertici(faccia_orizzontale);
             if (vertici == 4) {
                 // cubo!
                 type_forma = 1;
+                ROS_INFO("Cubo vedo una faccia");
             } else {
                 // esagono
                 type_forma = 3;
+                ROS_INFO("Esagono verticale vedo una faccia");
             }
         }
     } else {
@@ -400,30 +424,37 @@ void analyze_object(T_PointCloud::Ptr object) {
             if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
                 // triangolo!
                 type_forma = 2;
+                ROS_INFO("Triangolo vedo due facce");
             } else if (abs_ranger(c1z, sqrt32, 0.1) || abs_ranger(c2z, sqrt32, 0.1) || abs_ranger(c3z, sqrt32, 0.1)) {
                 // esagono disteso
                 type_forma = 3;
+                ROS_INFO("Esagono disteso vedo due facce");
             } else {
                 // cubo!
                 type_forma = 1;
+                ROS_INFO("Cubo vedo due facce");
             }
         } else {
             // three faces found
             if (ranger(sort_diedro_1, 45)) {
                 // e' un triangolo di sicuro
                 type_forma = 2;
+                ROS_INFO("Triangolo vedo tre facce, dal lato fortunato");
             } else if (ranger(sort_diedro_1, 60)) {
                 // e' un esagono di sicuro
                 type_forma = 3;
+                ROS_INFO("Esagono vedo tre facce");
             } else {
                 // forse cubo, forse triangolo
                 // analizzo il coefficiente sulla z e vedo se e' vicino a sqrt(2)/2
                 if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
                     // triangolo!
                     type_forma = 2;
+                    ROS_INFO("Triangolo vedo tre facce, dal lato sfortunato");
                 } else {
                     // cubo!
                     type_forma = 1;
+                    ROS_INFO("Cubo vedo tre facce");
                 }
             }
         }
@@ -439,8 +470,8 @@ int main(int argc, char** argv) {
 
     // ############# load the cloud #############
 
-    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
-    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect.pcd";
+    std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_kinect_3obj.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
