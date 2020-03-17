@@ -3,24 +3,15 @@
 #include "apriltag_ros/AprilTagDetectionArray.h"
 #include "apriltag_ros/AprilTagDetection.h"
 #include <April2Pose.h>
-
-void chatterCallback(const apriltag_ros::AprilTagDetectionArray& msg)
-{
-    if (msg.detections.size() > 0) {
-        apriltag_ros::AprilTagDetection first_detection = msg.detections[0];
-        ROS_INFO("I heard: [%d]", first_detection.id[0]);
-    } else {
-        ROS_INFO("No tag found");
-    }
-}
-
+#include "ros/package.h"
+#include <sys/stat.h>
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "april_parse_listener");
     ROS_INFO("Setting up");
     
-    //User input
+    // map from names to ids
     std::map<std::string, int> names2ids;
     names2ids.insert(std::pair<std::string, int> ("red_cube_0", 0));
     names2ids.insert(std::pair<std::string, int> ("red_cube_1", 1));
@@ -48,6 +39,13 @@ int main(int argc, char **argv)
             ROS_INFO("NOT adding tag %d for object %s", names2ids[argv[i]], argv[i]);
         }
     }
+
+    // create the output folder
+    std::stringstream ss;
+    ss << ros::package::getPath("hw1") << "/output";
+    mkdir(ss.str().c_str(), 0777);
+
+    // build the April2Pose object with the list of apriltag ids to look for
     April2Pose apposer = April2Pose(searching_ids);
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe("tag_detections", 1000, 
