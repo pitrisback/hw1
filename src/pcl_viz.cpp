@@ -559,6 +559,7 @@ int main(int argc, char** argv) {
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_test_from_mesh.pcd";
     // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_5obj.pcd";
     std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_6obj.pcd";
+    // std::string pcl_data_file = "/home/ros/ros_ws/src/hw1/pcl_data/pcl_rgb_hexabad.pcd";
 
     T_PointCloud::Ptr cloud(new T_PointCloud);
     pcl::io::loadPCDFile(pcl_data_file, *cloud);

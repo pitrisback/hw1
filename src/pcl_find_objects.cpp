@@ -49,7 +49,7 @@ void filter_cloud(T_PointCloud::Ptr & cloud,
         ) {
     // the axis are colored in order XYB <-> RGB
 
-    ROS_INFO("Filtering along %s in range (%f, %f)", axis.c_str(), lower_bound, upper_bound);
+    // ROS_INFO("Filtering along %s in range (%f, %f)", axis.c_str(), lower_bound, upper_bound);
 
     pcl::PassThrough<T_Point> pass_through;
     pass_through.setInputCloud (cloud);
@@ -80,10 +80,10 @@ void find_plane(T_PointCloud::Ptr input_cloud,
         return;
     }
 
-    ROS_INFO("Found %lu  plane inliers out of %lu points in the cleaned cloud",
-            inliers->indices.size (),
-            input_cloud->size()
-        );
+    // ROS_INFO("Found %lu  plane inliers out of %lu points in the cleaned cloud",
+            // inliers->indices.size (),
+            // input_cloud->size()
+        // );
 }
 
 void remove_plane(T_PointCloud::Ptr input_cloud,
@@ -125,7 +125,7 @@ void remove_plane(T_PointCloud::Ptr input_cloud,
             // );
 }
 
-std::vector<T_PointCloud::Ptr> segment_cloud(T_PointCloud::Ptr cloud) {
+std::vector<T_PointCloud::Ptr> segment_cloud(T_PointCloud::Ptr cloud, float & table_z_coeff) {
     // cloud viewer
     // std::string viewer_name = "3D Viewer - segment cloud";
     // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
@@ -148,6 +148,12 @@ std::vector<T_PointCloud::Ptr> segment_cloud(T_PointCloud::Ptr cloud) {
     pcl::ModelCoefficients::Ptr coefficients_0 (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers_0 (new pcl::PointIndices);
     find_plane(cloud, coefficients_0, inliers_0, distance_threshold);
+    ROS_INFO("Coeff 0: %f %f %f %f",
+            coefficients_0->values[0],
+            coefficients_0->values[1],
+            coefficients_0->values[2],
+            coefficients_0->values[3]);
+    table_z_coeff = coefficients_0->values[3];
 
     // ############# remove the plane #############
 
@@ -194,8 +200,7 @@ std::vector<T_PointCloud::Ptr> segment_cloud(T_PointCloud::Ptr cloud) {
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        ROS_INFO("PointCloud representing the Cluster: size = %lu",
-                cloud_cluster->points.size());
+        // ROS_INFO("PointCloud representing the Cluster: size = %lu", cloud_cluster->points.size());
 
         objects.push_back(cloud_cluster);
     }
@@ -239,6 +244,15 @@ T_Point compute_mean(T_PointCloud::Ptr some_cloud) {
     float mean_x = 0;
     float mean_y = 0;
     float mean_z = 0;
+    T_Point mean;
+    mean.x = mean_x;
+    mean.y = mean_y;
+    mean.z = mean_z;
+
+    if (some_cloud->size() == 0) {
+        return mean;
+    }
+
     for (int i=0; i < some_cloud->size(); i++) {
         mean_x += some_cloud->points[i].x;
         mean_y += some_cloud->points[i].y;
@@ -248,7 +262,6 @@ T_Point compute_mean(T_PointCloud::Ptr some_cloud) {
     mean_y /= some_cloud->size();
     mean_z /= some_cloud->size();
 
-    T_Point mean;
     mean.x = mean_x;
     mean.y = mean_y;
     mean.z = mean_z;
@@ -320,7 +333,7 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
         // aggiungi il punto valido a massima distanza alla lista di vertici
         vertici_trovati.push_back(faccia_orizzontale->points[indice_vertice]);
         // ROS_INFO("Size vertici_trovati %lu", vertici_trovati.size());
-        ROS_INFO("Aggiunto a vertici_trovat indice %d", indice_vertice);
+        // ROS_INFO("Aggiunto a vertici_trovat indice %d", indice_vertice);
     }
 
     return trovato;
@@ -328,7 +341,7 @@ bool trova_vertice(T_PointCloud::Ptr faccia_orizzontale,
 
 int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
     // ROS_INFO("Inizia conta_vertici");
-    ROS_INFO("Size faccia_orizzontale %lu", faccia_orizzontale->size());
+    // ROS_INFO("Size faccia_orizzontale %lu", faccia_orizzontale->size());
 
     // cloud viewer
     // std::string viewer_name = "3D Viewer";
@@ -348,7 +361,7 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
         // ROS_INFO("dist centro punto[%d] %f", i, dist);
         if (dist > raggio_nuvola) raggio_nuvola = dist;
     }
-    ROS_INFO("Raggio nuvola %f", raggio_nuvola);
+    // ROS_INFO("Raggio nuvola %f", raggio_nuvola);
 
     float epsilon_interno = 0.85;
     float epsilon_vertice = 0.5;
@@ -362,7 +375,7 @@ int conta_vertici(T_PointCloud::Ptr faccia_orizzontale) {
         // sleep(1);
     }
 
-    ROS_INFO("Trovati %lu", vertici_trovati.size());
+    // ROS_INFO("Trovati %lu", vertici_trovati.size());
     return vertici_trovati.size();
 }
 
@@ -418,11 +431,11 @@ int analyze_color(T_PointCloud::Ptr object) {
             max_index = i;
         }
     }
-    ROS_INFO("Max index %d", max_index);
+    // ROS_INFO("Max index %d", max_index);
     return max_index;
 }
 
-int analyze_object(T_PointCloud::Ptr object) {
+int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_coeff) {
     // colors for the clouds
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla1 (object, 0, 0, 255);
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla2 (object, 0, 255, 0);
@@ -432,7 +445,7 @@ int analyze_object(T_PointCloud::Ptr object) {
     // std::string viewer_name = "3D Viewer";
     // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
 
-    ROS_INFO("\nAnalyze a %lu points cloud", object->size());
+    // ROS_INFO("\nAnalyze a %lu points cloud", object->size());
 
     // distance_threshold for RANSAC
     float distance_threshold = 0.001;
@@ -481,23 +494,23 @@ int analyze_object(T_PointCloud::Ptr object) {
     float diedro12 = 180, diedro13 = 180, diedro23 = 180;
 
     float c1x = coefficients_1->values[0], c1y = coefficients_1->values[1], c1z = coefficients_1->values[2];
-    ROS_INFO("Coeff 1: %f %f %f", c1x, c1y, c1z);
+    // ROS_INFO("Coeff 1: %f %f %f", c1x, c1y, c1z);
     float c2x, c2y, c2z;
     float c3x, c3y, c3z;
     if (done_2) {
         float c2x = coefficients_2->values[0], c2y = coefficients_2->values[1], c2z = coefficients_2->values[2];
-        ROS_INFO("Coeff 2: %f %f %f", c2x, c2y, c2z);
+        // ROS_INFO("Coeff 2: %f %f %f", c2x, c2y, c2z);
 
         diedro12 = diedro(coefficients_1, coefficients_2);
-        ROS_INFO("Angolo 1 2 %f", diedro12);
+        // ROS_INFO("Angolo 1 2 %f", diedro12);
 
         if (done_3) {
             float c3x = coefficients_3->values[0], c3y = coefficients_3->values[1], c3z = coefficients_3->values[2];
-            ROS_INFO("Coeff 3: %f %f %f", c3x, c3y, c3z);
+            // ROS_INFO("Coeff 3: %f %f %f", c3x, c3y, c3z);
             diedro23 = diedro(coefficients_2, coefficients_3);
-            ROS_INFO("Angolo 2 3 %f", diedro23);
+            // ROS_INFO("Angolo 2 3 %f", diedro23);
             diedro13 = diedro(coefficients_1, coefficients_3);
-            ROS_INFO("Angolo 1 3 %f", diedro13);
+            // ROS_INFO("Angolo 1 3 %f", diedro13);
         }
     }
 
@@ -513,9 +526,9 @@ int analyze_object(T_PointCloud::Ptr object) {
     if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
     if (sort_diedro_2 > sort_diedro_3) std::swap(sort_diedro_2, sort_diedro_3);
     if (sort_diedro_1 > sort_diedro_2) std::swap(sort_diedro_1, sort_diedro_2);
-    ROS_INFO("Sort Angolo 1 %f", sort_diedro_1);
-    ROS_INFO("Sort Angolo 2 %f", sort_diedro_2);
-    ROS_INFO("Sort Angolo 3 %f", sort_diedro_3);
+    // ROS_INFO("Sort Angolo 1 %f", sort_diedro_1);
+    // ROS_INFO("Sort Angolo 2 %f", sort_diedro_2);
+    // ROS_INFO("Sort Angolo 3 %f", sort_diedro_3);
 
     // 45 90 90 vertice dello spigolo acuto prisma triangolare
     // 60 60 60 prisma esagonale di cui vedo le tre facce laterali
@@ -524,6 +537,8 @@ int analyze_object(T_PointCloud::Ptr object) {
 
     float sqrt22 = std::sqrt(2) / 2;
     float sqrt32 = std::sqrt(3) / 2;
+    float coeff_orizzontale = 1;
+
     int type_forma = 0;
     // 1 cubo
     // 2 triangolo
@@ -533,13 +548,12 @@ int analyze_object(T_PointCloud::Ptr object) {
         // only one face found
         // capire il tipo di faccia per distinguere triangolo quadrato esagono
         // triangolo visto molto di lato, esagono in piedi o cubo
-        if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
+        if (abs_ranger(c1z, sqrt22, 0.1)) {
             // triangolo!
             type_forma = 2;
             ROS_INFO("Triangolo vedo una faccia");
         } else {
             // trova la faccia orizzontale
-            float coeff_orizzontale = 1;
             T_PointCloud::Ptr faccia_orizzontale;
             if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
                 faccia_orizzontale = plane_cloud_1;
@@ -566,19 +580,32 @@ int analyze_object(T_PointCloud::Ptr object) {
     } else {
         if (done_3 == false) {
             // two faces found
-            // puo' essere triangolo, cubo o esagono DISTESO, ma non esagono in piedi
-            if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
+            // puo' essere triangolo, cubo o esagono in piedi, o disteso
+            if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1)) {
                 // triangolo!
                 type_forma = 2;
                 ROS_INFO("Triangolo vedo due facce");
-            } else if (abs_ranger(c1z, sqrt32, 0.1) || abs_ranger(c2z, sqrt32, 0.1) || abs_ranger(c3z, sqrt32, 0.1)) {
+            } else if (abs_ranger(c1z, sqrt32, 0.1) || abs_ranger(c2z, sqrt32, 0.1)) {
                 // esagono disteso
                 type_forma = 3;
                 ROS_INFO("Esagono disteso vedo due facce");
             } else {
-                // cubo!
-                type_forma = 1;
-                ROS_INFO("Cubo vedo due facce");
+                if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
+                    the_pose = compute_mean(plane_cloud_1);
+                } else {
+                    the_pose = compute_mean(plane_cloud_2);
+                }
+                float z_faccia = - (table_z_coeff + the_pose.z);
+                // ROS_INFO("vedo due facce coeff z_faccia %f, the_pose.z %f", z_faccia, the_pose.z);
+                if (z_faccia > 0.15) {
+                    // esagono
+                    type_forma = 3;
+                    ROS_INFO("Esagono in piedi vedo due facce");
+                } else {
+                    // cubo!
+                    type_forma = 1;
+                    ROS_INFO("Cubo vedo due facce");
+                }
             }
         } else {
             // three faces found
@@ -601,6 +628,57 @@ int analyze_object(T_PointCloud::Ptr object) {
                     // cubo!
                     type_forma = 1;
                     ROS_INFO("Cubo vedo tre facce");
+                }
+            }
+        }
+    }
+
+    // estrae la pose dell'oggetto
+    if (done_2 == false) {
+        // ha trovato solo una faccia, la pose e' data dalla media della cloud
+        the_pose = compute_mean(plane_cloud_1);
+    } else {
+        if (done_3 == false) {
+            // two faces found
+            if (type_forma == 2) {
+                // triangolo
+                if (abs_ranger(c1z, sqrt22, 0.1)) {
+                    // la prima faccia trovata era a 45 gradi, usa quella come pose
+                    the_pose = compute_mean(plane_cloud_1);
+                } else {
+                    the_pose = compute_mean(plane_cloud_2);
+                }
+            } else {
+                // esagono o cubo: c'e' in entrambi i casi una faccia orizzontale
+                if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
+                    // la prima faccia trovata era orizzontale, usa quella come pose
+                    the_pose = compute_mean(plane_cloud_1);
+                } else {
+                    // era la seconda orizzontale
+                    the_pose = compute_mean(plane_cloud_2);
+                }
+            }
+        } else {
+            // three faces found
+            if (type_forma == 2) {
+                // triangolo, cerca una faccia a 45 gradi
+                if (abs_ranger(c1z, sqrt22, 0.1)) {
+                    // la prima faccia trovata era a 45 gradi, usa quella come pose
+                    the_pose = compute_mean(plane_cloud_1);
+                } else if (abs_ranger(c2z, sqrt22, 0.1)) {
+                    the_pose = compute_mean(plane_cloud_2);
+                } else {
+                    the_pose = compute_mean(plane_cloud_3);
+                }
+            } else {
+                // esagono o cubo: c'e' in entrambi i casi una faccia orizzontale
+                if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
+                    // la prima faccia trovata era orizzontale, usa quella come pose
+                    the_pose = compute_mean(plane_cloud_1);
+                } else if (abs_ranger(c2z, coeff_orizzontale, 0.1)) {
+                    the_pose = compute_mean(plane_cloud_2);
+                } else {
+                    the_pose = compute_mean(plane_cloud_3);
                 }
             }
         }
@@ -651,14 +729,15 @@ void callback_main(const T_PointCloud::ConstPtr& msg) {
     // copyPointCloud https://github.com/PointCloudLibrary/pcl/blob/master/examples/common/example_copy_point_cloud.cpp
     T_PointCloud::Ptr cloud (new T_PointCloud);
     copyPointCloud(*msg, *cloud);
-    ROS_INFO("Cloud: width = %d, height = %d", cloud->width, cloud->height);
+    ROS_INFO("\nRicevuta cloud: width = %d, height = %d", cloud->width, cloud->height);
 
     // cloud viewer
     // std::string viewer_name = "3D Viewer";
     // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (viewer_name));
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> objects_color_handler (cloud, 180, 0, 130);
 
-    std::vector<T_PointCloud::Ptr> objects = segment_cloud(cloud);
+    float table_z_coeff;
+    std::vector<T_PointCloud::Ptr> objects = segment_cloud(cloud, table_z_coeff);
 
     // salva quante forme per ogni tipo sono state trovate
     std::map<int, int> forme_trovate;
@@ -669,22 +748,30 @@ void callback_main(const T_PointCloud::ConstPtr& msg) {
     forme_trovate.insert(std::pair<int, int> (3, 0)); // cubo blu
     forme_trovate.insert(std::pair<int, int> (4, 0)); // triangolo rosso
 
-
-    for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
-        ROS_INFO("Showing object %lu", i);
-        // show_cloud(viewer, objects[i], "Objects", objects_color_handler, false);
-        int forma_trovata = analyze_object(objects[i]);
-        forme_trovate[forma_trovata]++;
-    }
-
-    // sleep(1000);
-
+    // nomi delle forme
     std::map<int, std::string> ids2names;
+    ids2names.insert(std::pair<int, std::string> (-1, "not_identified"));
     ids2names.insert(std::pair<int, std::string> (0, "red_cube"));
     ids2names.insert(std::pair<int, std::string> (1, "yellow_cyl"));
     ids2names.insert(std::pair<int, std::string> (2, "green_prism"));
     ids2names.insert(std::pair<int, std::string> (3, "blue_cube"));
     ids2names.insert(std::pair<int, std::string> (4, "red_prism"));
+
+    for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
+        // pose dell'oggetto
+        T_Point the_pose;
+
+        ROS_INFO("Analizzo object %lu", i);
+        // show_cloud(viewer, objects[i], "Objects", objects_color_handler, false);
+        int forma_trovata = analyze_object(objects[i], the_pose, table_z_coeff);
+        forme_trovate[forma_trovata]++;
+
+        // correct the pose, relative to the table top
+        the_pose.z = - (table_z_coeff + the_pose.z);
+        ROS_INFO("Trovata forma %s, pose: %f %f %f", ids2names[forma_trovata].c_str(), the_pose.x, the_pose.y, the_pose.z);
+    }
+
+    // sleep(1000);
 
     // scorre tutte le forme da trovare
     for (int i = 0; i < forme_interessanti.size(); i++) {
