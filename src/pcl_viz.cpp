@@ -566,7 +566,7 @@ int main(int argc, char** argv) {
     ROS_INFO("Loaded cloud: width = %d, height = %d", cloud->width, cloud->height);
 
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> orig_cloud_color_handler (cloud, 255, 255, 255);
-    show_cloud(viewer, cloud, "Original", orig_cloud_color_handler);
+    // show_cloud(viewer, cloud, "Original", orig_cloud_color_handler);
 
     // ############# chop the cloud #############
 
@@ -580,21 +580,21 @@ int main(int argc, char** argv) {
     float upper_bound = std::atof(argv[2]);
     filter_cloud(cloud, "z", lower_bound, upper_bound);
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> z_filt_color_handler (cloud, 0, 180, 255);
-    show_cloud(viewer, cloud, "Filtered z", z_filt_color_handler);
+    // show_cloud(viewer, cloud, "Filtered z", z_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[3], argv[4]);
     lower_bound = std::atof(argv[3]);
     upper_bound = std::atof(argv[4]);
     filter_cloud(cloud, "y", lower_bound, upper_bound);
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> y_filt_color_handler (cloud, 180, 0, 255);
-    show_cloud(viewer, cloud, "Filtered y", y_filt_color_handler);
+    // show_cloud(viewer, cloud, "Filtered y", y_filt_color_handler);
 
     ROS_INFO("CLI: Filtering in range (%s, %s)", argv[5], argv[6]);
     lower_bound = std::atof(argv[5]);
     upper_bound = std::atof(argv[6]);
     filter_cloud(cloud, "x", lower_bound, upper_bound);
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> x_filt_color_handler (cloud, 90, 90, 255);
-    show_cloud(viewer, cloud, "Filtered x", x_filt_color_handler);
+    // show_cloud(viewer, cloud, "Filtered x", x_filt_color_handler);
 
     // ############# find the plane #############
     // http://pointclouds.org/documentation/tutorials/planar_segmentation.php
@@ -608,7 +608,8 @@ int main(int argc, char** argv) {
     // Mandatory
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
+    // seg.setDistanceThreshold (0.01);
+    seg.setDistanceThreshold (0.001);
 
     seg.setInputCloud (cloud);
     seg.segment (*inliers, *coefficients);
@@ -643,7 +644,7 @@ int main(int argc, char** argv) {
             );
 
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> objects_color_handler (cloud, 0, 0, 255);
-    show_cloud(viewer, cloud, "Objects", objects_color_handler, true);
+    // show_cloud(viewer, cloud, "Objects", objects_color_handler, true);
 
     // ############# segment the remaining points #############
     // http://pointclouds.org/documentation/tutorials/cluster_extraction.php
@@ -688,6 +689,20 @@ int main(int argc, char** argv) {
         objects.push_back(cloud_cluster);
     }
     ROS_INFO("Trovati %lu oggetti",objects.size ());
+
+
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_R (cloud, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_G (cloud , 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_B (cloud, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_C (cloud, 0, 255, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_M (cloud , 255, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<T_Point> c_Y (cloud, 255, 255, 0);
+    show_cloud(viewer, objects[0], "Objects 0", c_R);
+    show_cloud(viewer, objects[1], "Objects 1", c_G);
+    show_cloud(viewer, objects[2], "Objects 2", c_B);
+    show_cloud(viewer, objects[3], "Objects 3", c_C);
+    show_cloud(viewer, objects[4], "Objects 4", c_M);
+    show_cloud(viewer, objects[5], "Objects 5", c_Y, true);
 
     // for misterious reasons this complains
     // for (std::vector<T_PointCloud::Ptr>::const_iterator it = objects.begin ();
