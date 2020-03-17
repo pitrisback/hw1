@@ -19,6 +19,8 @@
 typedef pcl::PointXYZRGB T_Point;
 typedef pcl::PointCloud<pcl::PointXYZRGB> T_PointCloud;
 
+std::vector<int> forme_interessanti;
+
 void show_cloud(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer,
                 T_PointCloud::Ptr & cloud,
                 std::string cloud_name,
@@ -420,7 +422,7 @@ int analyze_color(T_PointCloud::Ptr object) {
     return max_index;
 }
 
-void analyze_object(T_PointCloud::Ptr object) {
+int analyze_object(T_PointCloud::Ptr object) {
     // colors for the clouds
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla1 (object, 0, 0, 255);
     pcl::visualization::PointCloudColorHandlerCustom<T_Point> pla2 (object, 0, 255, 0);
@@ -606,12 +608,16 @@ void analyze_object(T_PointCloud::Ptr object) {
 
     int color = analyze_color(object);
 
+    int forma_trovata = -1;
+
     if (type_forma == 1) {
         // cubi
         if (color == 0) {
             ROS_INFO("Cubo rosso");
+            forma_trovata = 0;
         } else if (color == 2) {
             ROS_INFO("Cubo blue");
+            forma_trovata = 3;
         } else {
             ROS_INFO("Cubo FALLITO colore incompatibile");
         }
@@ -619,8 +625,10 @@ void analyze_object(T_PointCloud::Ptr object) {
         // triangoli
         if (color == 0) {
             ROS_INFO("Triangolo rosso");
+            forma_trovata = 4;
         } else if (color == 1) {
             ROS_INFO("Triangolo verde");
+            forma_trovata = 2;
         } else {
             ROS_INFO("Triangolo FALLITO colore incompatibile");
         }
@@ -628,10 +636,14 @@ void analyze_object(T_PointCloud::Ptr object) {
         // esagoni
         if (color == 5) {
             ROS_INFO("Esagono giallo");
+            forma_trovata = 1;
         } else {
             ROS_INFO("Esagono FALLITO colore incompatibile");
         }
     }
+
+    return forma_trovata;
+
 }
 
 void callback_main(const T_PointCloud::ConstPtr& msg) {
@@ -648,17 +660,68 @@ void callback_main(const T_PointCloud::ConstPtr& msg) {
 
     std::vector<T_PointCloud::Ptr> objects = segment_cloud(cloud);
 
+    // salva quante forme per ogni tipo sono state trovate
+    std::map<int, int> forme_trovate;
+    forme_trovate.insert(std::pair<int, int> (-1, 0)); // trovato niente
+    forme_trovate.insert(std::pair<int, int> (0, 0)); // cubo rosso
+    forme_trovate.insert(std::pair<int, int> (1, 0)); // cilindro giallo
+    forme_trovate.insert(std::pair<int, int> (2, 0)); // triangolo verde
+    forme_trovate.insert(std::pair<int, int> (3, 0)); // cubo blu
+    forme_trovate.insert(std::pair<int, int> (4, 0)); // triangolo rosso
+
+
     for(std::vector<T_PointCloud::Ptr>::size_type i = 0; i != objects.size(); i++) {
         ROS_INFO("Showing object %lu", i);
         // show_cloud(viewer, objects[i], "Objects", objects_color_handler, false);
-        analyze_object(objects[i]);
+        int forma_trovata = analyze_object(objects[i]);
+        forme_trovate[forma_trovata]++;
     }
 
     // sleep(1000);
+
+    std::map<int, std::string> ids2names;
+    ids2names.insert(std::pair<int, std::string> (0, "red_cube"));
+    ids2names.insert(std::pair<int, std::string> (1, "yellow_cyl"));
+    ids2names.insert(std::pair<int, std::string> (2, "green_prism"));
+    ids2names.insert(std::pair<int, std::string> (3, "blue_cube"));
+    ids2names.insert(std::pair<int, std::string> (4, "red_prism"));
+
+    // scorre tutte le forme da trovare
+    for (int i = 0; i < forme_interessanti.size(); i++) {
+        // estrae la forma corrente da esaminare per chiarezza
+        int forma_corrente = forme_interessanti[i];
+
+        if (forme_trovate[forma_corrente] == 0) {
+            // se il numero di trovate e' sceso a 0 (o lo e' sempre stato), non c'e' la forma nella scena
+            // ROS_INFO("Non ho trovato %d", forma_corrente);
+            ROS_INFO("Non ho trovato %s", ids2names[forma_corrente].c_str());
+        } else {
+            // la forma e' stata trovata nella scena
+            // ROS_INFO("Trovato %d!!!", forma_corrente);
+            ROS_INFO("Trovato %s", ids2names[forma_corrente].c_str());
+            forme_trovate[forma_corrente]--;
+        }
+    }
 }
 
 int main(int argc, char** argv) {
     ROS_INFO("Booting pcl_find_objects");
+
+    std::map<std::string, int> names2ids;
+    names2ids.insert(std::pair<std::string, int> ("red_cube", 0));
+    names2ids.insert(std::pair<std::string, int> ("yellow_cyl", 1));
+    names2ids.insert(std::pair<std::string, int> ("green_prism", 2));
+    names2ids.insert(std::pair<std::string, int> ("blue_cube", 3));
+    names2ids.insert(std::pair<std::string, int> ("red_prism", 4));
+
+    for(int i = 1; i<argc; i++){
+        if(names2ids.count(argv[i]) == 1) {
+            forme_interessanti.push_back(names2ids[argv[i]]);
+            ROS_INFO("Adding tag %d for object %s", names2ids[argv[i]], argv[i]);
+        } else {
+            ROS_INFO("NOT adding tag %d for object %s", names2ids[argv[i]], argv[i]);
+        }
+    }
 
     // ros::init(argc, argv, "sub_pcl");
     ros::init(argc, argv, "pcl_find_objects");
