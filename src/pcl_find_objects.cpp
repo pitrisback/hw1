@@ -148,11 +148,11 @@ std::vector<T_PointCloud::Ptr> segment_cloud(T_PointCloud::Ptr cloud, float & ta
     pcl::ModelCoefficients::Ptr coefficients_0 (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers_0 (new pcl::PointIndices);
     find_plane(cloud, coefficients_0, inliers_0, distance_threshold);
-    ROS_INFO("Coeff 0: %f %f %f %f",
-            coefficients_0->values[0],
-            coefficients_0->values[1],
-            coefficients_0->values[2],
-            coefficients_0->values[3]);
+    // ROS_INFO("Coeff 0: %f %f %f %f",
+            // coefficients_0->values[0],
+            // coefficients_0->values[1],
+            // coefficients_0->values[2],
+            // coefficients_0->values[3]);
     table_z_coeff = coefficients_0->values[3];
 
     // ############# remove the plane #############
@@ -422,7 +422,7 @@ int analyze_color(T_PointCloud::Ptr object) {
             freq_white += 1;
         }
     }
-    ROS_INFO("Freq RGB %d %d %d CMY %d %d %d BW %d %d", freq_r, freq_g, freq_b, freq_c, freq_m, freq_y, freq_black, freq_white);
+    // ROS_INFO("Freq RGB %d %d %d CMY %d %d %d BW %d %d", freq_r, freq_g, freq_b, freq_c, freq_m, freq_y, freq_black, freq_white);
 
     int freq [6] = { freq_r, freq_g, freq_b, freq_c, freq_m, freq_y };
     int max_index = 0;
@@ -551,30 +551,30 @@ int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_c
         if (abs_ranger(c1z, sqrt22, 0.1)) {
             // triangolo!
             type_forma = 2;
-            ROS_INFO("Triangolo vedo una faccia");
+            // ROS_INFO("Triangolo vedo una faccia");
         } else {
             // trova la faccia orizzontale
             T_PointCloud::Ptr faccia_orizzontale;
             if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
                 faccia_orizzontale = plane_cloud_1;
-                ROS_INFO("Prima faccia orizzontale");
+                // ROS_INFO("Prima faccia orizzontale");
             } else if (abs_ranger(c2z, coeff_orizzontale, 0.1)) {
                 faccia_orizzontale = plane_cloud_2;
-                ROS_INFO("Seconda faccia orizzontale");
+                // ROS_INFO("Seconda faccia orizzontale");
             } else {
                 faccia_orizzontale = plane_cloud_3;
-                ROS_INFO("Terzo faccia orizzontale");
+                // ROS_INFO("Terzo faccia orizzontale");
             }
             // conta i vertici
             int vertici = conta_vertici(faccia_orizzontale);
             if (vertici == 4) {
                 // cubo!
                 type_forma = 1;
-                ROS_INFO("Cubo vedo una faccia");
+                // ROS_INFO("Cubo vedo una faccia");
             } else {
                 // esagono
                 type_forma = 3;
-                ROS_INFO("Esagono verticale vedo una faccia");
+                // ROS_INFO("Esagono verticale vedo una faccia");
             }
         }
     } else {
@@ -584,11 +584,11 @@ int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_c
             if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1)) {
                 // triangolo!
                 type_forma = 2;
-                ROS_INFO("Triangolo vedo due facce");
+                // ROS_INFO("Triangolo vedo due facce");
             } else if (abs_ranger(c1z, sqrt32, 0.1) || abs_ranger(c2z, sqrt32, 0.1)) {
                 // esagono disteso
                 type_forma = 3;
-                ROS_INFO("Esagono disteso vedo due facce");
+                // ROS_INFO("Esagono disteso vedo due facce");
             } else {
                 if (abs_ranger(c1z, coeff_orizzontale, 0.1)) {
                     the_pose = compute_mean(plane_cloud_1);
@@ -600,11 +600,11 @@ int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_c
                 if (z_faccia > 0.15) {
                     // esagono
                     type_forma = 3;
-                    ROS_INFO("Esagono in piedi vedo due facce");
+                    // ROS_INFO("Esagono in piedi vedo due facce");
                 } else {
                     // cubo!
                     type_forma = 1;
-                    ROS_INFO("Cubo vedo due facce");
+                    // ROS_INFO("Cubo vedo due facce");
                 }
             }
         } else {
@@ -612,22 +612,22 @@ int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_c
             if (ranger(sort_diedro_1, 45)) {
                 // e' un triangolo di sicuro
                 type_forma = 2;
-                ROS_INFO("Triangolo vedo tre facce, dal lato fortunato");
+                // ROS_INFO("Triangolo vedo tre facce, dal lato fortunato");
             } else if (ranger(sort_diedro_1, 60)) {
                 // e' un esagono di sicuro
                 type_forma = 3;
-                ROS_INFO("Esagono vedo tre facce");
+                // ROS_INFO("Esagono vedo tre facce");
             } else {
                 // forse cubo, forse triangolo
                 // analizzo il coefficiente sulla z e vedo se e' vicino a sqrt(2)/2
                 if (abs_ranger(c1z, sqrt22, 0.1) || abs_ranger(c2z, sqrt22, 0.1) || abs_ranger(c3z, sqrt22, 0.1)) {
                     // triangolo!
                     type_forma = 2;
-                    ROS_INFO("Triangolo vedo tre facce, dal lato sfortunato");
+                    // ROS_INFO("Triangolo vedo tre facce, dal lato sfortunato");
                 } else {
                     // cubo!
                     type_forma = 1;
-                    ROS_INFO("Cubo vedo tre facce");
+                    // ROS_INFO("Cubo vedo tre facce");
                 }
             }
         }
@@ -691,32 +691,32 @@ int analyze_object(T_PointCloud::Ptr object, T_Point & the_pose, float table_z_c
     if (type_forma == 1) {
         // cubi
         if (color == 0) {
-            ROS_INFO("Cubo rosso");
+            // ROS_INFO("Cubo rosso");
             forma_trovata = 0;
         } else if (color == 2) {
-            ROS_INFO("Cubo blue");
+            // ROS_INFO("Cubo blue");
             forma_trovata = 3;
         } else {
-            ROS_INFO("Cubo FALLITO colore incompatibile");
+            // ROS_INFO("Cubo FALLITO colore incompatibile");
         }
     } else if (type_forma == 2) {
         // triangoli
         if (color == 0) {
-            ROS_INFO("Triangolo rosso");
+            // ROS_INFO("Triangolo rosso");
             forma_trovata = 4;
         } else if (color == 1) {
-            ROS_INFO("Triangolo verde");
+            // ROS_INFO("Triangolo verde");
             forma_trovata = 2;
         } else {
-            ROS_INFO("Triangolo FALLITO colore incompatibile");
+            // ROS_INFO("Triangolo FALLITO colore incompatibile");
         }
     } else if (type_forma == 3) {
         // esagoni
         if (color == 5) {
-            ROS_INFO("Esagono giallo");
+            // ROS_INFO("Esagono giallo");
             forma_trovata = 1;
         } else {
-            ROS_INFO("Esagono FALLITO colore incompatibile");
+            // ROS_INFO("Esagono FALLITO colore incompatibile");
         }
     }
 
@@ -773,6 +773,7 @@ void callback_main(const T_PointCloud::ConstPtr& msg) {
 
     // sleep(1000);
 
+    ROS_INFO("\nRecap:");
     // scorre tutte le forme da trovare
     for (int i = 0; i < forme_interessanti.size(); i++) {
         // estrae la forma corrente da esaminare per chiarezza
