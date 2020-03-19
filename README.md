@@ -3,6 +3,7 @@
 ### Task 1	
 
 0) Start gazebo, add some objects on the table and start the AprilTag detection node
+
 ```bash
 roslaunch ar_arena ar_bringup.launch simulation:=true
 roslaunch ar_arena apriltag.launch simulation:=true
@@ -20,9 +21,9 @@ The position and orientation of the object will be saved in `output/pose_<id>.tx
 
 ### Task 2
 
-0) Start gazebo, add some objects on the table
+0) Start roscore, gazebo and add some objects on the table
 
-1) Run the PCL node and request some categories of objects to be searched for
+1) Run the PCL node and request some categories of objects to be searched for. Possible categories are `red_cube`, `yellow_cyl`, `green_prism`, `blue_cube`, `red_prism`.
 
 ```bash
 catkin build hw1 && rosrun hw1 pcl_find_objects red_cube blue_cube blue_cube
@@ -40,7 +41,6 @@ For each object, the category and the position (with z relative to the table) is
 [ INFO] [1584575652.427272921, 4173.393000000]: Analizzo object 0
 [ INFO] [1584575652.428928462, 4173.394000000]: Trovata forma yellow_cyl, pose: -0.332989 -0.144777 0.084070
 ```
-
 
 In a scene where one red cube and only one blue cube are present, the following output would be produced.
 
