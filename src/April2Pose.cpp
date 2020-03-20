@@ -22,10 +22,10 @@ void April2Pose::aprilCallback(const apriltag_ros::AprilTagDetectionArray& msg){
         apriltag_ros::AprilTagDetection the_detection = msg.detections[i];
         ROS_INFO("I heard: [%d]", the_detection.id[0]);
         
-        for(int i=0; i<ids.size(); i++) {
-            ROS_INFO("Sto controllando %d", ids[i]);
-            if(ids[i] == the_detection.id[0]){
-                ROS_INFO("Era quello giusto!!!! %d", ids[i]);
+        for(int j=0; j<ids.size(); j++) {
+            ROS_INFO("Sto controllando %d", ids[j]);
+            if(ids[j] == the_detection.id[0]){
+                ROS_INFO("Era quello giusto!!!! %d", ids[j]);
                 ROS_INFO("Position x: [%f]", the_detection.pose.pose.pose.position.x);
                 ROS_INFO("Position y: [%f]", the_detection.pose.pose.pose.position.y);
                 ROS_INFO("Position z: [%f]", the_detection.pose.pose.pose.position.z);
@@ -35,11 +35,11 @@ void April2Pose::aprilCallback(const apriltag_ros::AprilTagDetectionArray& msg){
                 ROS_INFO("Orientation z: [%f]", the_detection.pose.pose.pose.orientation.z);
 
                 std::stringstream ss;
-                ss << ros::package::getPath("hw1") << "/output/pose_" << ids[i] << ".txt";
+                ss << ros::package::getPath("hw1") << "/output/pose_" << ids[j] << ".txt";
                 std::ofstream file_out;
                 ROS_INFO("File name %s", ss.str().c_str());
                 file_out.open(ss.str().c_str());
-                file_out << "Pose and orientation for tag " << ids[i] << std::endl;
+                file_out << "Pose and orientation for tag " << ids[j] << std::endl;
                 file_out << "Position x: " << the_detection.pose.pose.pose.position.x << std::endl;
                 file_out << "Position y: " << the_detection.pose.pose.pose.position.y << std::endl;
                 file_out << "Position z: " << the_detection.pose.pose.pose.position.z << std::endl;
